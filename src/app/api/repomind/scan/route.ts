@@ -91,3 +91,33 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 }
+
+export async function GET(req: Request) {
+  try {
+    const { searchParams } = new URL(req.url)
+    const repoId = searchParams.get("repoId")
+
+    if (!repoId) {
+      return NextResponse.json({ error: "Missing repoId" }, { status: 400 })
+    }
+
+    const repo = await db.repository.findUnique({
+      where: { id: repoId },
+      include: { files: true }
+    })
+
+    if (!repo) {
+      return NextResponse.json({ error: "Repository not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      filesCount: repo.files.length,
+      status: repo.status
+    })
+
+  } catch (error: any) {
+    console.error("Scan GET error:", error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
