@@ -45,8 +45,8 @@ export async function POST(req: Request) {
     systemMessage = "Be extremely brief and to the point. Avoid fluff."
   }
 
-  // Use the selected model or fallback to Flash (Mapped to supported 2.5 versions)
-  const selectedModel = model === "gemini-1.5-pro" ? "gemini-2.5-pro" : "gemini-2.5-flash"
+  // Use the selected model or fallback to Flash
+  const selectedModel = model === "gemini-1.5-pro" ? "gemini-1.5-pro" : "gemini-2.0-flash"
 
   // Load User Knowledge Base Documents
   try {
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
       Promise.resolve().then(async () => {
         try {
           const titleResponse = await generateText({
-            model: google("gemini-2.5-flash"),
+            model: google("gemini-2.0-flash"),
             system: "Generate a very short (2-4 words) concise title for this chat based on the user's message. Do not use quotes, labels, or prefixes. Just the title.",
             prompt: userMessage,
           })
