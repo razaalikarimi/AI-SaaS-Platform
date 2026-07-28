@@ -28,14 +28,11 @@ export default function OverviewClient({ initialRepo }: OverviewClientProps) {
       if (!res.ok) throw new Error(data.error || "Failed to scan codebase")
 
       toast.success("Repository scanned and indexed successfully!")
-      // Fetch updated repo data to show files count
-      const updatedRes = await fetch(`/api/repomind/scan?repoId=${repo.id}`) // We can just reload or update from returned data
       
-      // Let's set the files based on returned data
       setRepo((prev: any) => ({
         ...prev,
         status: data.status,
-        files: Array(data.filesCount).fill({}) // Mock files length for array count
+        files: Array(data.filesCount || 0).fill({})
       }))
 
     } catch (err: any) {
