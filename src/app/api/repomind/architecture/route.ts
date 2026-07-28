@@ -4,6 +4,34 @@ import { db } from "@/lib/db";
 
 export const maxDuration = 60;
 
+function cleanMermaidCode(code: string): string {
+  let cleaned = code.trim();
+  cleaned = cleaned.replace(/^```(mermaid)?\n?/i, "").replace(/\n?```$/i, "").trim();
+
+  // Fix unquoted labels inside {{...}}
+  cleaned = cleaned.replace(/\{\{([^"\n]+?)\}\}/g, (_match, label) => {
+    return `{{\"${label.trim().replace(/"/g, "'")}\"}}`;
+  });
+
+  // Fix unquoted labels inside [...] containing special chars
+  cleaned = cleaned.replace(/\[([^"\n\[\]]+?)\]/g, (_match, label) => {
+    if (/[()::\s\-]/.test(label) && !label.startsWith('"')) {
+      return `[\"${label.trim().replace(/"/g, "'")}\"]`;
+    }
+    return `[${label}]`;
+  });
+
+  // Fix unquoted labels inside (...) containing special chars
+  cleaned = cleaned.replace(/\(([^"\n()]+?)\)/g, (_match, label) => {
+    if (/[::\s\-]/.test(label) && !label.startsWith('"')) {
+      return `(\"${label.trim().replace(/"/g, "'")}\")`;
+    }
+    return `(${label})`;
+  });
+
+  return cleaned;
+}
+
 export async function POST(req: Request) {
   try {
     const { repoId } = await req.json();
@@ -17,10 +45,12 @@ export async function POST(req: Request) {
       return new Response(JSON.stringify({ error: "Repository not found" }), { status: 404 });
     }
 
+    const fallbackDiagram = `graph TD\n  User["End user"] --> Frontend["React Frontend"]\n  Frontend --> APIGateway["API Gateway"]\n  APIGateway --> AuthService["Auth Service"]\n  APIGateway --> CoreAPI["Core Backend API"]\n  CoreAPI --> Database["Database / Storage"]\n  CoreAPI --> LLMService["Google Gemini AI"]`;
+
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || "";
     if (!apiKey || apiKey === "AIza..." || apiKey === "your_key_here") {
       return new Response(JSON.stringify({ 
-        mermaid: `graph TD\n  A[Repository Frontend] --> B(Backend API)\n  B --> C{Database}\n  C -->|Prisma| B\n  B -->|AI| D[Google Gemini]\n\n  %% Note: This is a demo chart because the AI key is missing.` 
+        mermaid: fallbackDiagram
       }), { status: 200 });
     }
 
@@ -65,23 +95,18 @@ export async function POST(req: Request) {
       1. Output ONLY valid Mermaid code. Do not wrap it in markdown blockquotes like \`\`\`mermaid. 
       2. Keep it clean, high-level (Frontend, Backend, Database, Cloud Services, etc.).
       3. Use proper Mermaid node shapes and connections.
+      4. CRITICAL MERMAID SYNTAX RULE: ALWAYS wrap ALL node labels in double quotes. Example: NodeA["Frontend React App"], NodeB["API Service::Node.js"], NodeC{{"Large Language Model (Gemini)"}}. Never leave special characters like colons, parentheses, or dots unquoted inside shape markers!
     `;
 
-    const { text } = await generateText({
-      model: google("gemini-2.5-flash"),
-      prompt: prompt,
-    });
-
-    // Clean up potential markdown formatting from AI output
-    let mermaidCode = text.trim();
-    if (mermaidCode.startsWith("```mermaid")) {
-      mermaidCode = mermaidCode.replace(/```mermaid\n?/, "");
-    }
-    if (mermaidCode.startsWith("```")) {
-      mermaidCode = mermaidCode.replace(/```\n?/, "");
-    }
-    if (mermaidCode.endsWith("```")) {
-      mermaidCode = mermaidCode.slice(0, -3).trim();
+    let mermaidCode = fallbackDiagram;
+    try {
+      const { text } = await generateText({
+        model: google("gemini-2.0-flash"),
+        prompt: prompt,
+      });
+      mermaidCode = cleanMermaidCode(text);
+    } catch (aiErr: any) {
+      console.error("AI Generation failed, using fallback architecture diagram:", aiErr);
     }
 
     return new Response(JSON.stringify({ mermaid: mermaidCode }), {

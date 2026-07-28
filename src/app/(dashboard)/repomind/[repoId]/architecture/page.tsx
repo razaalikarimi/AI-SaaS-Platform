@@ -52,13 +52,36 @@ export default function ArchitecturePage() {
             flowchart: { curve: "basis" }
           });
           mermaidRef.current!.innerHTML = "";
-          const { svg } = await mermaid.render("arch-diagram", mermaidCode);
-          mermaidRef.current!.innerHTML = svg;
+
+          // Clean up any remaining unquoted node labels with special characters
+          let cleanedCode = mermaidCode.trim();
+          cleanedCode = cleanedCode.replace(/^```(mermaid)?\n?/i, "").replace(/\n?```$/i, "").trim();
+          cleanedCode = cleanedCode.replace(/\{\{([^"\n]+?)\}\}/g, (_m, label) => `{{\"${label.trim().replace(/"/g, "'")}\"}}`);
+          cleanedCode = cleanedCode.replace(/\[([^"\n\[\]]+?)\]/g, (_m, label) => {
+            if (/[()::\s\-]/.test(label) && !label.startsWith('"')) return `[\"${label.trim().replace(/"/g, "'")}\"]`;
+            return `[${label}]`;
+          });
+          cleanedCode = cleanedCode.replace(/\(([^"\n()]+?)\)/g, (_m, label) => {
+            if (/[::\s\-]/.test(label) && !label.startsWith('"')) return `(\"${label.trim().replace(/"/g, "'")}\")`;
+            return `(${label})`;
+          });
+
+          // Unique ID per render to avoid element ID collisions in DOM
+          const uniqueId = `arch-diagram-${Date.now()}`;
+          const { svg } = await mermaid.render(uniqueId, cleanedCode);
+          if (mermaidRef.current) {
+            mermaidRef.current.innerHTML = svg;
+          }
         } catch (e) {
           console.error("Mermaid render failed:", e);
-          // Fallback: show raw code
+          // Fallback: show raw code gracefully
           if (mermaidRef.current) {
-            mermaidRef.current.innerHTML = `<pre class="text-sm font-mono text-slate-600 whitespace-pre-wrap p-4">${mermaidCode}</pre>`;
+            mermaidRef.current.innerHTML = `
+              <div class="w-full p-4 bg-slate-900 rounded-lg text-slate-200 font-mono text-sm overflow-auto">
+                <div class="text-amber-400 font-sans text-xs font-semibold uppercase tracking-wider mb-2">Diagram Markup Preview</div>
+                <pre class="whitespace-pre-wrap">${mermaidCode}</pre>
+              </div>
+            `;
           }
         }
       };
