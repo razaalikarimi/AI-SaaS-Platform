@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { google } from "@ai-sdk/google"
+import { openai } from "@ai-sdk/openai"
 import { streamText, generateId, generateText } from "ai"
 import { db } from "@/lib/db"
 import { auth, currentUser } from "@clerk/nextjs/server"
@@ -45,8 +45,8 @@ export async function POST(req: Request) {
     systemMessage = "Be extremely brief and to the point. Avoid fluff."
   }
 
-  // Use the selected model or fallback to Flash
-  const selectedModel = model === "gemini-1.5-pro" ? "gemini-1.5-pro" : "gemini-2.0-flash"
+  // Use the selected model or fallback
+  const selectedModel = process.env.OPENAI_MODEL || "gpt-4o-mini"
 
   // Load User Knowledge Base Documents
   try {
@@ -98,7 +98,7 @@ export async function POST(req: Request) {
       Promise.resolve().then(async () => {
         try {
           const titleResponse = await generateText({
-            model: google("gemini-2.0-flash"),
+            model: openai(process.env.OPENAI_MODEL || "gpt-4o-mini"),
             system: "Generate a very short (2-4 words) concise title for this chat based on the user's message. Do not use quotes, labels, or prefixes. Just the title.",
             prompt: userMessage,
           })
@@ -116,11 +116,11 @@ export async function POST(req: Request) {
   }
 
   try {
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || "";
+    const apiKey = process.env.OPENAI_API_KEY || "";
     
     // DEMO MODE: If no real key is provided, stream a mock response
     if (!apiKey || apiKey === "AIza..." || apiKey === "your_key_here") {
-      const mockText = "This is a simulated AI response. Your UI and backend are fully functional! To get real AI generation, please provide a valid GOOGLE_GENERATIVE_AI_API_KEY in the .env file.";
+      const mockText = "This is a simulated AI response. Your UI and backend are fully functional! To get real AI generation, please provide a valid OPENAI_API_KEY in the .env file.";
       
       const messageId = generateId();
       const stream = new ReadableStream({
@@ -157,7 +157,7 @@ export async function POST(req: Request) {
     }
 
     const result = await streamText({
-      model: google(selectedModel),
+      model: openai(selectedModel),
       system: systemMessage,
       messages: coreMessages,
       onFinish: async ({ text }) => {
@@ -182,7 +182,7 @@ export async function POST(req: Request) {
     console.error("Chat API Error (Falling back to mock stream):", error)
     
     // Fallback if real API fails (e.g. rate limit / quota exceeded)
-    const mockText = "⚠️ [API Quota Exceeded] This is a fallback simulated AI response. Your UI and backend are fully functional, but your provided API key has exhausted its free quota. Please provide a new Google Generative AI API Key to restore real AI generation.";
+    const mockText = "⚠️ [API Quota Exceeded] This is a fallback simulated AI response. Your UI and backend are fully functional, but your provided API key has exhausted its free quota. Please provide a new OpenAI API Key to restore real AI generation.";
     
     const messageId = generateId();
     const stream = new ReadableStream({

@@ -1,4 +1,4 @@
-import { google } from "@ai-sdk/google";
+import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { db } from "@/lib/db";
 
@@ -17,10 +17,10 @@ export async function POST(req: Request) {
       return new Response(JSON.stringify({ error: "Repository not found" }), { status: 404 });
     }
 
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || "";
+    const apiKey = process.env.OPENAI_API_KEY || "";
     if (!apiKey || apiKey === "AIza..." || apiKey === "your_key_here") {
       return new Response(JSON.stringify({ 
-        report: `# Security Audit Report\n\n> **Note:** This is a simulated report. Real AI scanning requires a valid GOOGLE_GENERATIVE_AI_API_KEY in your .env file.\n\n## High Severity\n- Outdated dependencies in \`package.json\`\n- Hardcoded secrets found in example configurations\n\n## Recommendations\n1. Update all packages to their latest stable versions.\n2. Use a secret manager.` 
+        report: `# Security Audit Report\n\n> **Note:** This is a simulated report. Real AI scanning requires a valid OPENAI_API_KEY in your .env file.\n\n## High Severity\n- Outdated dependencies in \`package.json\`\n- Hardcoded secrets found in example configurations\n\n## Recommendations\n1. Update all packages to their latest stable versions.\n2. Use a secret manager.` 
       }), { status: 200 });
     }
 
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
 
     try {
       const { text } = await generateText({
-        model: google("gemini-2.0-flash"),
+        model: openai(process.env.OPENAI_MODEL || "gpt-4o-mini"),
         prompt: prompt,
       });
       reportText = text;

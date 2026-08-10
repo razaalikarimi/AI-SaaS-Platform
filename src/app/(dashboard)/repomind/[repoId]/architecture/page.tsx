@@ -118,7 +118,7 @@ export default function ArchitecturePage() {
       <Card className="bg-white border-slate-200 shadow-sm min-h-[500px]">
         <CardHeader>
           <CardTitle>Codebase Map</CardTitle>
-          <CardDescription>Generated using Gemini 2.5 and Mermaid.js</CardDescription>
+          <CardDescription>Generated using OpenAI and Mermaid.js</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (

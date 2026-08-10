@@ -59,7 +59,7 @@ export default function SecurityPage() {
       <Card className="bg-white border-slate-200 shadow-sm min-h-[500px]">
         <CardHeader>
           <CardTitle>Audit Report</CardTitle>
-          <CardDescription>Generated using Gemini 2.5 by inspecting repository configuration and structure.</CardDescription>
+          <CardDescription>Generated using OpenAI by inspecting repository configuration and structure.</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (

@@ -1,4 +1,4 @@
-import { google } from "@ai-sdk/google";
+import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { db } from "@/lib/db";
 
@@ -45,9 +45,9 @@ export async function POST(req: Request) {
       return new Response(JSON.stringify({ error: "Repository not found" }), { status: 404 });
     }
 
-    const fallbackDiagram = `graph TD\n  User["End user"] --> Frontend["React Frontend"]\n  Frontend --> APIGateway["API Gateway"]\n  APIGateway --> AuthService["Auth Service"]\n  APIGateway --> CoreAPI["Core Backend API"]\n  CoreAPI --> Database["Database / Storage"]\n  CoreAPI --> LLMService["Google Gemini AI"]`;
+    const fallbackDiagram = `graph TD\n  User["End user"] --> Frontend["React Frontend"]\n  Frontend --> APIGateway["API Gateway"]\n  APIGateway --> AuthService["Auth Service"]\n  APIGateway --> CoreAPI["Core Backend API"]\n  CoreAPI --> Database["Database / Storage"]\n  CoreAPI --> LLMService["OpenAI API"]`;
 
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || "";
+    const apiKey = process.env.OPENAI_API_KEY || "";
     if (!apiKey || apiKey === "AIza..." || apiKey === "your_key_here") {
       return new Response(JSON.stringify({ 
         mermaid: fallbackDiagram
@@ -95,13 +95,13 @@ export async function POST(req: Request) {
       1. Output ONLY valid Mermaid code. Do not wrap it in markdown blockquotes like \`\`\`mermaid. 
       2. Keep it clean, high-level (Frontend, Backend, Database, Cloud Services, etc.).
       3. Use proper Mermaid node shapes and connections.
-      4. CRITICAL MERMAID SYNTAX RULE: ALWAYS wrap ALL node labels in double quotes. Example: NodeA["Frontend React App"], NodeB["API Service::Node.js"], NodeC{{"Large Language Model (Gemini)"}}. Never leave special characters like colons, parentheses, or dots unquoted inside shape markers!
+      4. CRITICAL MERMAID SYNTAX RULE: ALWAYS wrap ALL node labels in double quotes. Example: NodeA["Frontend React App"], NodeB["API Service::Node.js"], NodeC{{"Large Language Model (OpenAI)"}}. Never leave special characters like colons, parentheses, or dots unquoted inside shape markers!
     `;
 
     let mermaidCode = fallbackDiagram;
     try {
       const { text } = await generateText({
-        model: google("gemini-2.0-flash"),
+        model: openai(process.env.OPENAI_MODEL || "gpt-4o-mini"),
         prompt: prompt,
       });
       mermaidCode = cleanMermaidCode(text);

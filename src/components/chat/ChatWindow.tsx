@@ -52,7 +52,7 @@ export const ChatWindow = ({ initialMessages = [] }: { initialMessages?: UIMessa
       body: {
         chatId,
         personality: "Professional",
-        model: "gemini-2.0-flash"
+        model: "gpt-4o-mini"
       }
     }),
     onError: () => {

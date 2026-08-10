@@ -1,4 +1,4 @@
-import { google } from "@ai-sdk/google";
+import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { db } from "@/lib/db";
 
@@ -60,10 +60,10 @@ export async function POST(req: Request) {
     const repo = await db.repository.findUnique({ where: { id: repoId } });
     if (!repo) return new Response(JSON.stringify({ error: "Repository not found" }), { status: 404 });
 
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || "";
+    const apiKey = process.env.OPENAI_API_KEY || "";
     if (!apiKey || apiKey === "AIza..." || apiKey === "your_key_here") {
       return new Response(JSON.stringify({ 
-        review: `# PR #${prNumber} Review (Simulated)\n\n> **Note:** This is a simulated review. Real AI scanning requires a valid GOOGLE_GENERATIVE_AI_API_KEY in your .env file.\n\n## 📝 Summary\nLooks good overall, but a few things to check.\n\n## 🐞 Potential Issues\n- Missing error boundary in the new React component.\n- Console.log statement left in production code.\n\n## 💡 Recommendations\nAdd unit tests for the edge cases.` 
+        review: `# PR #${prNumber} Review (Simulated)\n\n> **Note:** This is a simulated review. Real AI scanning requires a valid OPENAI_API_KEY in your .env file.\n\n## 📝 Summary\nLooks good overall, but a few things to check.\n\n## 🐞 Potential Issues\n- Missing error boundary in the new React component.\n- Console.log statement left in production code.\n\n## 💡 Recommendations\nAdd unit tests for the edge cases.` 
       }), { status: 200 });
     }
 
@@ -112,7 +112,7 @@ export async function POST(req: Request) {
 
     try {
       const { text } = await generateText({
-        model: google("gemini-2.0-flash"),
+        model: openai(process.env.OPENAI_MODEL || "gpt-4o-mini"),
         prompt: prompt,
       });
       reviewText = text;

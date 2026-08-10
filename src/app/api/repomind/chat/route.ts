@@ -1,4 +1,4 @@
-import { google } from "@ai-sdk/google";
+import { openai } from "@ai-sdk/openai";
 import { streamText, generateId } from "ai";
 import { db } from "@/lib/db";
 
@@ -31,11 +31,11 @@ export async function POST(req: Request) {
       }
     }
 
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || "";
+    const apiKey = process.env.OPENAI_API_KEY || "";
     
     // DEMO MODE: If no real key is provided
     if (!apiKey || apiKey === "AIza..." || apiKey === "your_key_here") {
-      const mockText = "This is a simulated AI response. The real AI engine requires a GOOGLE_GENERATIVE_AI_API_KEY in the .env file. Once you provide it, I will be able to answer questions about this repository!";
+      const mockText = "This is a simulated AI response. The real AI engine requires a OPENAI_API_KEY in the .env file. Once you provide it, I will be able to answer questions about this repository!";
       
       const messageId = generateId();
       const stream = new ReadableStream({
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
     }
 
     const result = await streamText({
-      model: google("gemini-2.0-flash"),
+      model: openai(process.env.OPENAI_MODEL || "gpt-4o-mini"),
       system: systemMessage,
       messages,
     });

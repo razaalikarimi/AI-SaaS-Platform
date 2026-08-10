@@ -21,7 +21,7 @@ Just updated the UI with a much cleaner dark/light mode layout and dropped the o
 - Next.js 16 (Turbopack is insanely fast)
 - TailwindCSS & shadcn/ui (because I refuse to write raw CSS anymore)
 - Prisma ORM + SQLite
-- Vercel AI SDK + Google Gemini API
+- Vercel AI SDK + OpenAI API
 
 ---
 
@@ -36,7 +36,8 @@ npm install
 2. You'll need an `.env` file at the root of `web/`. Make it look like this:
 ```env
 DATABASE_URL="file:./dev.db"
-GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_key_here
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4o-mini
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
