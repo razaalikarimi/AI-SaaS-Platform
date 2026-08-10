@@ -6,7 +6,7 @@ import Link from "next/link"
 const TOOLS = [
   {
     title: "Blog Writer",
-    description: "Generate high-quality SEO-optimized blog posts in seconds.",
+    description: "Write complete blog posts based on a topic.",
     icon: FileText,
   },
   {
@@ -16,7 +16,7 @@ const TOOLS = [
   },
   {
     title: "LinkedIn Post",
-    description: "Viral LinkedIn content to grow your personal brand.",
+    description: "Create engaging posts for your LinkedIn profile.",
     icon: Briefcase,
   },
   {
@@ -36,12 +36,12 @@ const TOOLS = [
   },
   {
     title: "Resume Builder",
-    description: "Professional resumes tailored to job descriptions.",
+    description: "Create professional resumes.",
     icon: PenTool,
   },
   {
     title: "Image Prompt",
-    description: "Detailed prompts for Midjourney and DALL-E.",
+    description: "Create detailed descriptions for AI image tools.",
     icon: ImageIcon,
   },
 ]
@@ -56,10 +56,10 @@ export const ToolsShowcase = () => {
             Tools Directory
           </span>
           <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mt-3 mb-4">
-            Specialized generators for every business operation.
+            Useful tools for your daily tasks.
           </h2>
           <p className="text-slate-500 text-[15px] max-w-2xl leading-relaxed">
-            Stop starting from scratch. DevKit offers a complete directory of tailored AI tools to accelerate your workflow.
+            DevKit includes several built-in AI generators to help you write code, emails, blogs, and more.
           </p>
         </div>
 

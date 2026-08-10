@@ -18,13 +18,13 @@ export const Hero = () => {
         
         {/* Elegant Headline */}
         <h1 className="text-[3.5rem] md:text-[5.5rem] font-bold tracking-[-0.04em] text-[#111] mb-6 leading-[1.05]">
-          Your Ultimate <br className="hidden md:block" />
-          All-in-One AI Workspace.
+          All your AI tools <br className="hidden md:block" />
+          in one simple place.
         </h1>
 
         {/* Crisp Sub-headline */}
         <p className="text-[17px] md:text-[19px] text-[#666] max-w-2xl mx-auto leading-[1.6] mb-12">
-          Why pay for 10 different AI tools? Get an advanced AI Chat, 8+ tailored Content Generators, Document Knowledge Hub, and GitHub Intelligence all in one unified platform.
+          DevKit brings AI chat, document search, code generation, and GitHub tools into a single dashboard. Built to save your time and make your work easier.
         </p>
 
         {/* Clean Action Buttons */}

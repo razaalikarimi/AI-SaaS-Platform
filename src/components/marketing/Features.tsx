@@ -5,23 +5,23 @@ import Link from "next/link"
 
 const FEATURES = [
   {
-    title: "Intelligent Chat",
-    description: "Engage in real-time conversations with advanced AI models like GPT-4o-mini for instant answers.",
+    title: "AI Chat",
+    description: "Chat with an advanced AI model to get quick answers, solve problems, and write code.",
     icon: MessageSquare,
   },
   {
-    title: "Knowledge Hub",
-    description: "Upload your proprietary documents and files to give the AI custom context for hyper-accurate responses.",
+    title: "Document Search",
+    description: "Upload your files and chat with them to quickly find the exact information you need.",
     icon: FolderOpen,
   },
   {
-    title: "AI Content Generators",
-    description: "Generate blogs, emails, code snippets, and assets instantly using our specialized pre-built tools.",
+    title: "Smart Generators",
+    description: "Use our pre-built tools to instantly generate emails, blog posts, and code snippets.",
     icon: Zap,
   },
   {
-    title: "RepoMind Intelligence",
-    description: "Connect your GitHub repositories to map architecture, run security audits, and get automated PR reviews.",
+    title: "GitHub Tools",
+    description: "Connect your GitHub account to map out your project, check for security issues, and review code.",
     icon: GitBranch,
   },
 ]
@@ -40,7 +40,7 @@ export const Features = () => {
             Everything your team needs in one platform
           </h2>
           <p className="text-slate-500 text-[15px] max-w-2xl mx-auto leading-relaxed">
-            From powerful chat interfaces to specialized generators and GitHub integrations, DevKit has it all.
+            DevKit brings all the essential tools you need into one clean dashboard.
           </p>
         </div>
 
