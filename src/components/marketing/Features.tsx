@@ -1,28 +1,28 @@
 "use client"
 
-import { Cpu, Globe, Lock, Database, ArrowRight } from "lucide-react"
+import { Zap, MessageSquare, GitBranch, FolderOpen, ArrowRight } from "lucide-react"
 import Link from "next/link"
 
 const FEATURES = [
   {
-    title: "Enterprise Reasoning",
-    description: "Proprietary AI models optimized for complex business reasoning and autonomous task execution.",
-    icon: Cpu,
+    title: "Intelligent Chat",
+    description: "Engage in real-time conversations with advanced AI models like GPT-4o-mini for instant answers.",
+    icon: MessageSquare,
   },
   {
-    title: "Scalability",
-    description: "Deploy AI across your entire org with multi-region support, auto-scaling, and 99.9% SLA guarantees.",
-    icon: Globe,
+    title: "Knowledge Hub",
+    description: "Upload your proprietary documents and files to give the AI custom context for hyper-accurate responses.",
+    icon: FolderOpen,
   },
   {
-    title: "Security & Compliance",
-    description: "AES-256 encryption, SOC2 Type II, GDPR, and HIPAA compliance built into the core platform.",
-    icon: Lock,
+    title: "AI Content Generators",
+    description: "Generate blogs, emails, code snippets, and assets instantly using our specialized pre-built tools.",
+    icon: Zap,
   },
   {
-    title: "Custom Integrations",
-    description: "Connect existing data sources and workflows with our REST API, webhooks, and native SDK.",
-    icon: Database,
+    title: "RepoMind Intelligence",
+    description: "Connect your GitHub repositories to map architecture, run security audits, and get automated PR reviews.",
+    icon: GitBranch,
   },
 ]
 
@@ -40,8 +40,7 @@ export const Features = () => {
             Everything your team needs in one platform
           </h2>
           <p className="text-slate-500 text-[15px] max-w-2xl mx-auto leading-relaxed">
-            Reliable, secure, and blazing-fast AI solutions built for
-            mission-critical operations at any scale.
+            From powerful chat interfaces to specialized generators and GitHub integrations, DevKit has it all.
           </p>
         </div>
 
