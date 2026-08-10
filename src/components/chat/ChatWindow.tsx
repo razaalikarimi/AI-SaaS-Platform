@@ -70,7 +70,8 @@ export const ChatWindow = ({ initialMessages = [] }: { initialMessages?: UIMessa
     if (!input.trim() || isLoading) return
     
     // Check usage limit before sending
-    if (!incrementChat()) {
+    const allowed = await incrementChat()
+    if (!allowed) {
       return
     }
 

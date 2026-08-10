@@ -104,6 +104,8 @@ model User {
   plan               String               @default("FREE")
   stripeCustomerId   String?              @unique
   credits            Int                  @default(1000)
+  chatCount          Int                  @default(0)
+  toolCount          Int                  @default(0)
   conversation       Conversation[]
   document           Document[]
   prompttemplate     PromptTemplate[]

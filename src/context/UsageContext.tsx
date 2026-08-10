@@ -5,16 +5,23 @@ import { toast } from "sonner"
 import Script from "next/script"
 import { Zap, Check } from "lucide-react"
 
+import { 
+  getUserUsage, 
+  incrementChatAction, 
+  incrementToolAction, 
+  upgradeUserToProAction 
+} from "@/actions/usage"
+
 type UsageContextType = {
   chatCount: number
   toolCount: number
   isProUser: boolean
   isPaywallOpen: boolean
-  incrementChat: () => boolean // returns false if blocked
-  incrementTool: () => boolean // returns false if blocked
+  incrementChat: () => Promise<boolean>
+  incrementTool: () => Promise<boolean>
   openPaywall: () => void
   closePaywall: () => void
-  upgradeToPro: () => void
+  upgradeToPro: () => Promise<void>
 }
 
 const UsageContext = createContext<UsageContextType | undefined>(undefined)
@@ -27,58 +34,68 @@ export const UsageProvider = ({ children }: { children: React.ReactNode }) => {
   const [isInitialized, setIsInitialized] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  // Load from localStorage on mount
+  // Load from Database on mount
   useEffect(() => {
-    const savedChat = localStorage.getItem("devkit_chat_count")
-    const savedTool = localStorage.getItem("devkit_tool_count")
-    const savedPro = localStorage.getItem("devkit_is_pro")
-
-    if (savedChat) setChatCount(parseInt(savedChat))
-    if (savedTool) setToolCount(parseInt(savedTool))
-    if (savedPro === "true") setIsProUser(true)
-
-    setIsInitialized(true)
+    const fetchUsage = async () => {
+      try {
+        const usage = await getUserUsage()
+        if (usage) {
+          setChatCount(usage.chatCount)
+          setToolCount(usage.toolCount)
+          setIsProUser(usage.isProUser)
+        }
+      } catch (error) {
+        console.error("Failed to load usage data")
+      } finally {
+        setIsInitialized(true)
+      }
+    }
+    
+    fetchUsage()
   }, [])
-
-  // Sync to localStorage
-  useEffect(() => {
-    if (!isInitialized) return
-    localStorage.setItem("devkit_chat_count", chatCount.toString())
-    localStorage.setItem("devkit_tool_count", toolCount.toString())
-    localStorage.setItem("devkit_is_pro", isProUser.toString())
-  }, [chatCount, toolCount, isProUser, isInitialized])
 
   const CHAT_LIMIT = 5
   const TOOL_LIMIT = 2
 
   const openPaywall = () => setIsPaywallOpen(true)
   const closePaywall = () => setIsPaywallOpen(false)
-  const upgradeToPro = () => {
-    setIsProUser(true)
-    closePaywall()
-    toast.success("Successfully upgraded to Pro!", {
-      description: "You now have unlimited access."
-    })
+  const upgradeToPro = async () => {
+    const success = await upgradeUserToProAction()
+    if (success) {
+      setIsProUser(true)
+      closePaywall()
+      toast.success("Successfully upgraded to Pro!", {
+        description: "You now have unlimited access."
+      })
+    } else {
+      toast.error("Upgrade failed. Please contact support.")
+    }
   }
 
-  const incrementChat = () => {
+  const incrementChat = async () => {
     if (isProUser) return true
-    if (chatCount >= CHAT_LIMIT) {
+    
+    const success = await incrementChatAction()
+    if (success) {
+      setChatCount(prev => prev + 1)
+      return true
+    } else {
       openPaywall()
       return false
     }
-    setChatCount(prev => prev + 1)
-    return true
   }
 
-  const incrementTool = () => {
+  const incrementTool = async () => {
     if (isProUser) return true
-    if (toolCount >= TOOL_LIMIT) {
+    
+    const success = await incrementToolAction()
+    if (success) {
+      setToolCount(prev => prev + 1)
+      return true
+    } else {
       openPaywall()
       return false
     }
-    setToolCount(prev => prev + 1)
-    return true
   }
 
   const handleRazorpayPayment = async () => {

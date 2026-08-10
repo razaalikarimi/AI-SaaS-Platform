@@ -72,9 +72,10 @@ export default function ToolsPage() {
   const router = useRouter()
   const { incrementTool } = useUsage()
 
-  const handleToolClick = (e: React.MouseEvent, href: string) => {
+  const handleToolClick = async (e: React.MouseEvent, href: string) => {
     e.preventDefault()
-    if (incrementTool()) {
+    const allowed = await incrementTool()
+    if (allowed) {
       router.push(href)
     }
   }

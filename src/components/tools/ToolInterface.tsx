@@ -71,7 +71,8 @@ export const ToolInterface = ({
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!incrementTool()) {
+    const allowed = await incrementTool()
+    if (!allowed) {
       return
     }
     
