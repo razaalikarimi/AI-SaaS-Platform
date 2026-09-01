@@ -164,9 +164,9 @@ Your absolute mission is to provide 100% accurate, complete, well-structured, an
       messages: coreMessages,
       tools: {
         getLiveWeather: tool({
-          description: "Get hyper-accurate real-time live weather, temperature, humidity, wind, and forecast for any city, town, locality, or landmark in the world.",
+          description: "Get hyper-accurate real-time live weather, temperature, humidity, wind, and forecast for any city, town, state, or landmark in the world. If the user mentions a broad state, province, or region without a specific city (e.g., 'Kashmir', 'Sikkim', 'California', 'Bavaria', 'Punjab'), always resolve it to its primary capital/major city (e.g., 'Srinagar, Kashmir', 'Gangtok, Sikkim', 'Sacramento, California') to get the most accurate city-center weather coordinates.",
           inputSchema: z.object({
-            location: z.string().describe("The city, locality, district, or place name (e.g. 'Patna', 'Delhi', 'London', 'Darjeeling')"),
+            location: z.string().describe("The resolved city, locality, district, or place name with state/country for maximum precision (e.g. 'Srinagar, Kashmir', 'Gangtok, Sikkim', 'Patna, Bihar', 'London, UK')"),
           }),
           execute: async ({ location }: { location: string }) => {
             // WMO Weather interpretation code map
@@ -194,32 +194,16 @@ Your absolute mission is to provide 100% accurate, complete, well-structured, an
               99: "Thunderstorm with heavy hail"
             };
 
-            // Intelligent region alias mapping for states/valleys
-            const regionAliases: Record<string, string> = {
-              "kashmir": "Srinagar, Jammu and Kashmir, India",
-              "jammu and kashmir": "Srinagar, Jammu and Kashmir, India",
-              "j&k": "Srinagar, Jammu and Kashmir, India",
-              "sikkim": "Gangtok, Sikkim, India",
-              "goa": "Panaji, Goa, India",
-              "ladakh": "Leh, Ladakh, India",
-              "kerala": "Kochi, Kerala, India",
-              "uttarakhand": "Dehradun, Uttarakhand, India",
-              "himachal": "Shimla, Himachal Pradesh, India",
-              "himachal pradesh": "Shimla, Himachal Pradesh, India"
-            };
-
-            const searchLoc = regionAliases[location.trim().toLowerCase()] || location.trim();
-
             try {
-              // 1. Geocode location with top 5 results and pick highest population match
+              // 1. Universal Dynamic Geocoding with top 10 matches sorted by city population
               const geoRes = await fetch(
-                `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchLoc)}&count=5&language=en&format=json`,
+                `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location.trim())}&count=10&language=en&format=json`,
                 { signal: AbortSignal.timeout(5000) }
               );
               const geoData = await geoRes.json();
               
               if (geoData?.results && geoData.results.length > 0) {
-                // Sort by population descending so major cities are always picked over small villages
+                // Dynamically pick the most prominent city (highest population) for any query in the world
                 const sortedResults = [...geoData.results].sort((a, b) => (b.population || 0) - (a.population || 0));
                 const place = sortedResults[0];
                 

@@ -5,27 +5,29 @@ import { auth, currentUser } from "@clerk/nextjs/server"
 import { db } from "@/lib/db"
 import { revalidatePath } from "next/cache"
 
-// Helper to get or create DB user from Clerk session
+// Fast, lightweight helper to get DB user without slow external Clerk network hops
 const getDbUserId = async () => {
-  const { userId: clerkId } = await auth();
-  if (!clerkId) return "demo-user-id";
-
   try {
-    let user = await db.user.findUnique({ where: { clerkId } });
+    const { userId: clerkId } = await auth();
+    if (!clerkId) return "demo-user-id";
+
+    let user = await db.user.findUnique({ 
+      where: { clerkId },
+      select: { id: true }
+    });
     
     if (!user) {
-      const clerkUser = await currentUser();
       user = await db.user.create({
         data: {
           clerkId,
-          email: clerkUser?.emailAddresses[0]?.emailAddress || `${clerkId}@example.com`,
-          name: clerkUser?.fullName || 'New User',
-        }
+          email: `${clerkId}@devkit.ai`,
+          name: 'User',
+        },
+        select: { id: true }
       });
     }
     return user.id;
-  } catch (error) {
-    console.error("[getDbUserId] DB write failed (likely Vercel read-only FS):", error);
+  } catch {
     return "demo-user-id";
   }
 }

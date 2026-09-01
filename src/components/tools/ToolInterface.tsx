@@ -1,8 +1,7 @@
 /* eslint-disable */
 "use client"
 
-import { useState } from "react"
-import { useChat } from "@ai-sdk/react"
+import { useState, useRef } from "react"
 import { 
   Zap, 
   Copy, 
@@ -20,8 +19,7 @@ import { toast } from "sonner"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import ReactMarkdown from "react-markdown"
-
-import { DefaultChatTransport } from "ai"
+import remarkGfm from "remark-gfm"
 
 import { useUsage } from "@/context/UsageContext"
 
@@ -47,26 +45,10 @@ export const ToolInterface = ({
 }: ToolInterfaceProps) => {
   const { incrementTool } = useUsage()
   const [formState, setFormState] = useState<Record<string, string>>({})
+  const [result, setResult] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
   const [copied, setCopied] = useState(false)
-
-  const { messages, sendMessage, status, setMessages } = useChat({
-    transport: new DefaultChatTransport({
-      api: "/api/chat",
-      body: {
-        personality: "Professional",
-        model: "gpt-4o-mini"
-      }
-    }),
-  })
-
-  const isLoading = status === "streaming" || status === "submitted"
-  const lastMessage = messages[messages.length - 1]
-  const result = lastMessage?.role === "assistant" 
-    ? (lastMessage as any).content || (lastMessage.parts
-      ? lastMessage.parts.map((p: any) => (typeof p === "string" ? p : p.text || "")).join("")
-      : "")
-    : ""
-
+  const abortRef = useRef<AbortController | null>(null)
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -82,8 +64,49 @@ export const ToolInterface = ({
       finalPrompt += `- ${key}: ${value}\n`
     })
 
-    setMessages([])
-    sendMessage({ text: finalPrompt })
+    setResult("")
+    setIsLoading(true)
+
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    try {
+      const res = await fetch("/api/tools/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: finalPrompt,
+          systemPrompt: `You are the ${title} specialist in DevKit AI SaaS platform. Generate high-quality, production-ready, beautifully formatted outputs with complete depth and zero omissions.`
+        }),
+        signal: controller.signal
+      })
+
+      if (!res.ok) {
+        throw new Error("Generation failed with status " + res.status)
+      }
+
+      const reader = res.body?.getReader()
+      if (!reader) throw new Error("No readable stream")
+
+      const decoder = new TextDecoder()
+      let accumulated = ""
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const text = decoder.decode(value, { stream: true })
+        accumulated += text
+        setResult(accumulated)
+      }
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        console.error("Tool generation error:", err)
+        toast.error("Failed to generate asset. Please try again.")
+      }
+    } finally {
+      setIsLoading(false)
+      abortRef.current = null
+    }
   }
 
   const copyToClipboard = () => {
@@ -209,7 +232,7 @@ export const ToolInterface = ({
                   </motion.div>
                 ) : (
                   <div className="text-sm leading-relaxed whitespace-pre-wrap font-medium markdown-body">
-                    <ReactMarkdown>{result}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{result}</ReactMarkdown>
                   </div>
                 )}
               </AnimatePresence>

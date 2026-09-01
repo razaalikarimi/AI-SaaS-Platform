@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { Send, User, Bot, StopCircle, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -27,9 +28,15 @@ interface Message {
 export const ChatWindow = ({ initialMessages = [] }: { initialMessages?: any[] }) => {
   const { incrementChat } = useUsage()
   const params = useParams()
-  const chatId = params.chatId as string
+  const [chatId, setChatId] = useState<string>(() => (params?.chatId as string) || crypto.randomUUID())
   const [isMounted, setIsMounted] = useState(false)
   const [prompts, setPrompts] = useState<any[]>([])
+
+  useEffect(() => {
+    if (params?.chatId) {
+      setChatId(params.chatId as string)
+    }
+  }, [params?.chatId])
   
   const [messages, setMessages] = useState<Message[]>(() => {
     return initialMessages.map((m) => ({
@@ -96,6 +103,11 @@ export const ChatWindow = ({ initialMessages = [] }: { initialMessages?: any[] }
     setMessages([...nextMessages, assistantMessage])
     setInput("")
     setIsLoading(true)
+
+    // Smoothly update browser URL if this was a brand new chat (0ms lag, no reload)
+    if (typeof window !== "undefined" && window.location.pathname === "/chat") {
+      window.history.replaceState(null, "", `/chat/${chatId}`)
+    }
 
     const controller = new AbortController()
     abortControllerRef.current = controller
@@ -221,48 +233,6 @@ export const ChatWindow = ({ initialMessages = [] }: { initialMessages?: any[] }
                   Your intelligent assistant for software architecture, code generation, real-time queries, and repository intelligence.
                 </p>
               </div>
-
-              {/* Starter Quick Actions */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-xl text-left">
-                {[
-                  {
-                    title: "🚀 All DevKit Features A to Z",
-                    desc: "Explore RepoMind, AI Tools, RAG & security audits",
-                    prompt: "Tell me all the DevKit features and tools from A to Z in detail."
-                  },
-                  {
-                    title: "🌦️ Real-Time Weather Check",
-                    desc: "Check live temperature & conditions in any city",
-                    prompt: "What is the current weather, temperature, and forecast in Delhi?"
-                  },
-                  {
-                    title: "🔍 RepoMind GitHub Intelligence",
-                    desc: "How architecture & security audits work",
-                    prompt: "How does RepoMind analyze GitHub repositories, generate architecture diagrams, and find security bugs?"
-                  },
-                  {
-                    title: "💻 Production Code Generation",
-                    desc: "Generate clean, typed code & API endpoints",
-                    prompt: "Generate a production-ready Next.js App Router API route for handling user payments with Stripe or Razorpay."
-                  }
-                ].map((item, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => {
-                      handleSendMessage(item.prompt);
-                    }}
-                    className="p-3 bg-white border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/40 rounded-xl transition-all group flex flex-col justify-between text-left shadow-xs cursor-pointer"
-                  >
-                    <span className="text-xs font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors">
-                      {item.title}
-                    </span>
-                    <span className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
-                      {item.desc}
-                    </span>
-                  </button>
-                ))}
-              </div>
             </div>
           )}
 
@@ -290,7 +260,7 @@ export const ChatWindow = ({ initialMessages = [] }: { initialMessages?: any[] }
                       ? "bg-indigo-600 text-white rounded-tr-sm [&_strong]:text-white [&_h1]:text-white [&_h2]:text-white [&_h3]:text-white [&_h4]:text-white [&_li]:text-white [&_p]:text-white [&_a]:text-white"
                       : "bg-white text-slate-800 border border-slate-200 rounded-tl-sm shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
                   }`}>
-                    <ReactMarkdown>{m.content}</ReactMarkdown>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.content}</ReactMarkdown>
                   </div>
                   {!isUser && (
                     <div className="flex items-center gap-3 px-1">

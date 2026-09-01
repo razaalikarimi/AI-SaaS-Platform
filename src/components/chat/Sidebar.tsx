@@ -45,16 +45,8 @@ export const Sidebar = () => {
 
   useEffect(() => { setIsMounted(true) }, [])
 
-  const handleNewChat = async () => {
-    try {
-      const chat = await createConversation()
-      if (chat?.id) {
-        router.push(`/chat/${chat.id}`)
-        toast.success("New conversation started.")
-      }
-    } catch {
-      toast.error("Failed to initialize new conversation.")
-    }
+  const handleNewChat = () => {
+    router.push("/chat")
   }
 
   if (!isMounted) return null

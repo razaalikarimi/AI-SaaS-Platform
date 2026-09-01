@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react"
 import { toast } from "sonner"
-import Script from "next/script"
 import { Zap, Check } from "lucide-react"
 
 import { 
@@ -98,9 +97,30 @@ export const UsageProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
+  const loadRazorpayScript = (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (typeof window !== "undefined" && (window as any).Razorpay) {
+        return resolve(true)
+      }
+      const script = document.createElement("script")
+      script.src = "https://checkout.razorpay.com/v1/checkout.js"
+      script.async = true
+      script.onload = () => resolve(true)
+      script.onerror = () => resolve(false)
+      document.body.appendChild(script)
+    })
+  }
+
   const handleRazorpayPayment = async () => {
     setIsProcessing(true)
     try {
+      const isLoaded = await loadRazorpayScript()
+      if (!isLoaded) {
+        toast.error("Unable to load payment gateway")
+        setIsProcessing(false)
+        return
+      }
+
       const response = await fetch('/api/razorpay', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -170,7 +190,6 @@ export const UsageProvider = ({ children }: { children: React.ReactNode }) => {
       closePaywall,
       upgradeToPro
     }}>
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
       {children}
 
       {/* Global Paywall Modal */}

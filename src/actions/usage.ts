@@ -7,13 +7,25 @@ import { revalidatePath } from "next/cache"
 const CHAT_LIMIT = 5
 const TOOL_LIMIT = 2
 
-// Helper to get Db User ID
 const getDbUserId = async () => {
   const { userId: clerkId } = await auth()
   if (!clerkId) throw new Error("Unauthorized")
 
-  const user = await db.user.findUnique({ where: { clerkId } })
-  if (!user) throw new Error("User not found in DB")
+  let user = await db.user.findUnique({ 
+    where: { clerkId },
+    select: { id: true }
+  })
+  
+  if (!user) {
+    user = await db.user.create({
+      data: {
+        clerkId,
+        email: `${clerkId}@devkit.ai`,
+        name: 'User',
+      },
+      select: { id: true }
+    })
+  }
   
   return user.id
 }

@@ -345,3 +345,21 @@
 .markdown-body hr {
   @apply my-8 border-slate-200;
 }
+.markdown-body table {
+  @apply w-full my-4 border-collapse text-left text-xs border border-slate-200 rounded-lg overflow-hidden block overflow-x-auto;
+}
+.markdown-body thead {
+  @apply bg-slate-100 text-slate-700 font-semibold border-b border-slate-200;
+}
+.markdown-body th {
+  @apply px-3.5 py-2.5 font-semibold text-slate-800 border border-slate-200 whitespace-nowrap;
+}
+.markdown-body td {
+  @apply px-3.5 py-2.5 text-slate-600 border border-slate-200 whitespace-nowrap;
+}
+.markdown-body tr:nth-child(even) {
+  @apply bg-slate-50/60;
+}
+.markdown-body tr:hover {
+  @apply bg-indigo-50/30 transition-colors;
+}
