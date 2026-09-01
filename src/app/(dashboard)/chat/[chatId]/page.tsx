@@ -6,13 +6,18 @@ export default async function ChatIdPage({ params }: { params: Promise<{ chatId:
   const { chatId } = await params;
 
   // Fetch old messages from DB
-  const messages = await db.message.findMany({
-    where: { conversationId: chatId },
-    orderBy: { createdAt: "asc" }
-  })
+  let messages: any[] = [];
+  try {
+    messages = await db.message.findMany({
+      where: { conversationId: chatId },
+      orderBy: { createdAt: "asc" }
+    })
+  } catch (err) {
+    console.error("Failed to load messages:", err)
+  }
 
   // Map them to the AI SDK format
-  const initialMessages = messages.map(m => ({
+  const initialMessages = messages.map((m: any) => ({
     id: m.id,
     role: m.role as "user" | "assistant",
     content: m.content,
