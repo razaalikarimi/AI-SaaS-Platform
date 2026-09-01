@@ -1,12 +1,21 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { CreditCard, Check, AlertCircle, Download, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import Script from "next/script"
 import { toast } from "sonner" 
 import { useUsage } from "@/context/UsageContext"
-import { useEffect } from "react"
+
+const loadRazorpayScript = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (typeof window !== "undefined" && (window as any).Razorpay) return resolve(true)
+    const script = document.createElement("script")
+    script.src = "https://checkout.razorpay.com/v1/checkout.js"
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+}
 
 export default function BillingPage() {
   const { isProUser, upgradeToPro } = useUsage()
@@ -28,6 +37,13 @@ export default function BillingPage() {
 
   const handlePayment = async (planName: string, priceStr: string) => {
     setIsProcessing(true)
+
+    const loaded = await loadRazorpayScript()
+    if (!loaded) {
+      toast.error("Unable to connect to payment gateway. Please check your internet connection.")
+      setIsProcessing(false)
+      return
+    }
     
     // Convert string price "₹499" to paise (499 * 100 = 49900)
     const priceNum = parseInt(priceStr.replace(/[^0-9]/g, '')) * 100
@@ -125,8 +141,6 @@ export default function BillingPage() {
   return (
     <div className="h-full overflow-y-auto bg-[#F8FAFC]">
       <div className="max-w-5xl mx-auto p-6 md:p-10 text-slate-900">
-        <Script src="https://checkout.razorpay.com/v1/checkout.js" />
-        
         <div className="mb-8">
           <h1 className="text-2xl font-semibold mb-1">Billing & Subscription</h1>
           <p className="text-slate-500 text-sm">Manage your plan, UPI / Card payment methods, and GST invoices.</p>
