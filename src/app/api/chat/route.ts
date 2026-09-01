@@ -152,8 +152,7 @@ DevKit is an all-in-one AI SaaS developer & productivity ecosystem featuring:
           const encoder = new TextEncoder();
           const words = mockText.split(" ");
           for (let i = 0; i < words.length; i++) {
-            const chunk = JSON.stringify(words[i] + " ");
-            controller.enqueue(encoder.encode(`0:${chunk}\n`));
+            controller.enqueue(encoder.encode(words[i] + " "));
             await new Promise(r => setTimeout(r, 40));
           }
           controller.close();
@@ -256,7 +255,29 @@ DevKit is an all-in-one AI SaaS developer & productivity ecosystem featuring:
       }
     })
 
-    return result.toTextStreamResponse()
+    // Stream as plain text so the frontend raw reader can consume it directly
+    const textStream = result.textStream;
+    const readable = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        try {
+          for await (const chunk of textStream) {
+            controller.enqueue(encoder.encode(chunk));
+          }
+        } catch (e) {
+          console.error("Stream error:", e);
+        } finally {
+          controller.close();
+        }
+      }
+    });
+    return new Response(readable, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        "Connection": "keep-alive",
+      }
+    })
   } catch (error) {
     console.error("Chat API Error (Falling back to mock stream):", error)
     
@@ -267,8 +288,7 @@ DevKit is an all-in-one AI SaaS developer & productivity ecosystem featuring:
         const encoder = new TextEncoder();
         const words = mockText.split(" ");
         for (let i = 0; i < words.length; i++) {
-          const chunk = JSON.stringify(words[i] + " ");
-          controller.enqueue(encoder.encode(`0:${chunk}\n`));
+          controller.enqueue(encoder.encode(words[i] + " "));
           await new Promise(r => setTimeout(r, 40));
         }
         controller.close();

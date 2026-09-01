@@ -37,15 +37,12 @@ export async function POST(req: Request) {
     if (!apiKey || apiKey === "AIza..." || apiKey === "your_key_here") {
       const mockText = "This is a simulated AI response. The real AI engine requires a OPENAI_API_KEY in the .env file. Once you provide it, I will be able to answer questions about this repository!";
       
-      const messageId = generateId();
       const stream = new ReadableStream({
         async start(controller) {
           const encoder = new TextEncoder();
-          
           const words = mockText.split(" ");
           for (let i = 0; i < words.length; i++) {
-            const chunk = JSON.stringify(words[i] + " ");
-            controller.enqueue(encoder.encode(`0:${chunk}\n`));
+            controller.enqueue(encoder.encode(words[i] + " "));
             await new Promise(r => setTimeout(r, 40));
           }
           controller.close();
@@ -54,10 +51,9 @@ export async function POST(req: Request) {
       
       return new Response(stream, {
         headers: {
-          "Content-Type": "text/event-stream; charset=utf-8",
+          "Content-Type": "text/plain; charset=utf-8",
           "Cache-Control": "no-cache, no-transform",
           "Connection": "keep-alive",
-          "x-vercel-ai-ui-message-stream": "v1"
         }
       });
     }
@@ -68,7 +64,29 @@ export async function POST(req: Request) {
       messages,
     });
 
-    return result.toTextStreamResponse();
+    // Stream as plain text
+    const textStream = result.textStream;
+    const readable = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        try {
+          for await (const chunk of textStream) {
+            controller.enqueue(encoder.encode(chunk));
+          }
+        } catch (e) {
+          console.error("RepoMind stream error:", e);
+        } finally {
+          controller.close();
+        }
+      }
+    });
+    return new Response(readable, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        "Connection": "keep-alive",
+      }
+    });
 
   } catch (error) {
     console.error("RepoMind Chat API Error:", error);
