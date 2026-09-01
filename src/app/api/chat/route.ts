@@ -265,7 +265,7 @@ DevKit is an all-in-one AI SaaS developer & productivity ecosystem featuring:
           for await (const part of fullStream) {
             if (part.type === 'text-delta') {
               hasContent = true;
-              controller.enqueue(encoder.encode(part.textDelta));
+              controller.enqueue(encoder.encode(part.text));
             }
           }
           if (!hasContent) {
