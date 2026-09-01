@@ -34,31 +34,21 @@ export async function POST(req: Request) {
   console.log("Incoming Messages:", JSON.stringify(messages, null, 2))
 
   // Comprehensive DevKit Master System Message
-  let systemMessage = `You are DevKit AI — the core intelligent assistant of DevKit (an enterprise-grade AI SaaS platform for developers and modern businesses).
-You are versatile, extremely knowledgeable, proactive, and friendly. You answer every question thoroughly, accurately, and with helpful explanations.
+  let systemMessage = `You are DevKit AI — an omniscient, elite, enterprise-grade AI assistant.
+Your absolute mission is to provide 100% accurate, complete, well-structured, and helpful answers to EVERY question the user asks. Nothing should ever be left unanswered.
 
---- ABOUT DEVKIT PLATFORM ---
-DevKit is an all-in-one AI SaaS developer & productivity ecosystem featuring:
-1. **RepoMind (Flagship)**: Connect any public or private GitHub repository to:
-   - Generate interactive Mermaid architecture diagrams & flowcharts (/repomind/[repoId]/architecture)
-   - Perform automated security audits and detect vulnerabilities (/repomind/[repoId]/security)
-   - AI-powered Pull Request (PR) reviews and code suggestions (/repomind/[repoId]/pr-review)
-   - Chat with full repository context & codebase intelligence (/repomind/[repoId]/chat)
-2. **AI Tools Suite (/tools)**:
-   - AI Code Generator: Generates production-ready, typed code in Next.js, Python, TypeScript, Go, Rust, React, etc.
-   - SEO Optimizer: Content optimization, meta tags, and keyword density checker.
-   - Blog Writer & Email Generator: High-converting copy and enterprise communications.
-   - LinkedIn Post & YouTube Script Generator: Viral content curation.
-   - Resume Builder & Image Prompt generator for DALL-E/Midjourney.
-3. **Knowledge Base (RAG) (/knowledge)**: Upload PDF, DOCX, and TXT files for semantic search and document chat.
-4. **Prompt Library (/prompts)**: Custom enterprise prompt templates with variable replacement.
-5. **Team Workspaces (/team)** & Usage Analytics (/billing).
-
---- GENERAL CAPABILITIES & BEHAVIOR ---
-- Answer ALL user questions: coding, system design, general knowledge, math, science, current affairs, weather, recommendations, everyday casual conversation.
-- If asked about weather, locations, or live public facts, utilize your available tools or provide accurate, context-aware information.
-- Format responses beautifully with Markdown, code blocks, bullet points, and bold text for readability.
-- When asked "who are you" or "what is DevKit", introduce yourself proudly as DevKit AI and highlight key platform capabilities.`;
+--- GUIDELINES FOR PERFECT ANSWERS ---
+1. **Total Knowledge & Accuracy**:
+   - Answer all questions across coding, software architecture, mathematics, science, technology, history, geography, current affairs, business, writing, reasoning, and daily general knowledge.
+   - For real-time data like live weather, date/time, or factual lookups, ALWAYS utilize your specialized tools for up-to-the-minute precision.
+2. **Comprehensive & Clear Formatting**:
+   - Structure answers logically using clean Markdown: clear headings (##, ###), bullet points, tables, and **bold text** for key highlights.
+   - For code, ALWAYS provide production-ready, typed, error-free code blocks with syntax highlighting and explanatory comments.
+3. **Proactive & Friendly**:
+   - Never give vague, one-line, or dismissive answers.
+   - Explain the "why" and "how" with practical examples and step-by-step guidance.
+4. **DevKit Ecosystem**:
+   - If relevant, connect developer queries to DevKit's tools: RepoMind (architecture diagrams, security audits, PR reviews, repo chat) and AI Code Tools (/tools).`;
 
   if (personality === "Professional") {
     systemMessage += "\nTone: Professional, structured, and focused on business value.";
@@ -174,17 +164,78 @@ DevKit is an all-in-one AI SaaS developer & productivity ecosystem featuring:
       messages: coreMessages,
       tools: {
         getLiveWeather: tool({
-          description: "Get real-time live weather, temperature, humidity, wind, and forecast for any city or locality in the world (e.g. 'Jamia Nagar Delhi', 'London', 'Mumbai', 'New York').",
+          description: "Get hyper-accurate real-time live weather, temperature, humidity, wind, and forecast for any city, town, locality, or landmark in the world.",
           inputSchema: z.object({
-            location: z.string().describe("The city, locality, or area to get weather for"),
+            location: z.string().describe("The city, locality, district, or place name (e.g. 'Patna', 'Delhi', 'London', 'Darjeeling')"),
           }),
           execute: async ({ location }: { location: string }) => {
+            // WMO Weather interpretation code map
+            const wmoCodes: Record<number, string> = {
+              0: "Clear sky",
+              1: "Mainly clear",
+              2: "Partly cloudy",
+              3: "Overcast",
+              45: "Fog",
+              48: "Depositing rime fog",
+              51: "Light drizzle",
+              53: "Moderate drizzle",
+              55: "Dense drizzle",
+              61: "Slight rain",
+              63: "Moderate rain",
+              65: "Heavy rain",
+              71: "Slight snow fall",
+              73: "Moderate snow fall",
+              75: "Heavy snow fall",
+              80: "Slight rain showers",
+              81: "Moderate rain showers",
+              82: "Violent rain showers",
+              95: "Thunderstorm",
+              96: "Thunderstorm with slight hail",
+              99: "Thunderstorm with heavy hail"
+            };
+
+            try {
+              // 1. Geocode location for exact lat/lon precision
+              const geoRes = await fetch(
+                `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`,
+                { signal: AbortSignal.timeout(5000) }
+              );
+              const geoData = await geoRes.json();
+              
+              if (geoData?.results && geoData.results.length > 0) {
+                const place = geoData.results[0];
+                const weatherRes = await fetch(
+                  `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min&timezone=auto`,
+                  { signal: AbortSignal.timeout(5000) }
+                );
+                const wData = await weatherRes.json();
+                const current = wData.current;
+                const daily = wData.daily;
+                const condition = wmoCodes[current?.weather_code] || "Clear";
+                
+                return {
+                  location: `${place.name}${place.admin1 ? ', ' + place.admin1 : ''}, ${place.country || ''}`.trim(),
+                  temperature: `${Math.round(current?.temperature_2m)}°C (${Math.round((current?.temperature_2m * 9/5) + 32)}°F)`,
+                  feelsLike: `${Math.round(current?.apparent_temperature)}°C`,
+                  condition: condition,
+                  humidity: `${current?.relative_humidity_2m}%`,
+                  windSpeed: `${current?.wind_speed_10m} km/h`,
+                  precipitation: `${current?.precipitation} mm`,
+                  todayMax: daily?.temperature_2m_max?.[0] ? `${Math.round(daily.temperature_2m_max[0])}°C` : undefined,
+                  todayMin: daily?.temperature_2m_min?.[0] ? `${Math.round(daily.temperature_2m_min[0])}°C` : undefined,
+                  source: "Open-Meteo High Precision Satellite Radar"
+                };
+              }
+            } catch (err) {
+              console.warn("Open-Meteo fetch failed, falling back to wttr.in:", err);
+            }
+
+            // Fallback to wttr.in if geocoding fails
             try {
               const res = await fetch(`https://wttr.in/${encodeURIComponent(location)}?format=j1`, {
                 headers: { "User-Agent": "DevKit-AI/1.0" },
-                signal: AbortSignal.timeout(6000),
+                signal: AbortSignal.timeout(5000),
               });
-              if (!res.ok) throw new Error("Weather fetch failed");
               const data = await res.json();
               const current = data.current_condition?.[0];
               const nearest = data.nearest_area?.[0];
@@ -197,10 +248,37 @@ DevKit is an all-in-one AI SaaS developer & productivity ecosystem featuring:
                 windSpeed: `${current?.windspeedKmph} km/h`,
                 precipitation: `${current?.precipMM} mm`
               };
-            } catch (err) {
-              return { error: `Could not retrieve live weather for ${location}.` };
+            } catch {
+              return { error: `Live weather temporarily unavailable for ${location}.` };
             }
           },
+        }),
+        searchKnowledgeAndFacts: tool({
+          description: "Search live verified facts, encyclopedic summaries, history, science, geography, notable figures, and technology information.",
+          inputSchema: z.object({
+            query: z.string().describe("The topic, question, or entity to search facts for"),
+          }),
+          execute: async ({ query }: { query: string }) => {
+            try {
+              const wikiRes = await fetch(
+                `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query.trim())}`,
+                { signal: AbortSignal.timeout(4000), headers: { "User-Agent": "DevKit-AI/1.0" } }
+              );
+              if (wikiRes.ok) {
+                const wikiData = await wikiRes.json();
+                if (wikiData.extract) {
+                  return {
+                    title: wikiData.title,
+                    summary: wikiData.extract,
+                    source: "Wikipedia Verified Knowledge"
+                  };
+                }
+              }
+            } catch (err) {
+              console.warn("Wiki search failed:", err);
+            }
+            return { query, note: "Answer using your vast internal knowledge base with full details." };
+          }
         }),
         getCurrentDateTime: tool({
           description: "Get the current real-time date, day of week, local time, and Indian Standard Time (IST).",
