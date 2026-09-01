@@ -255,16 +255,18 @@ DevKit is an all-in-one AI SaaS developer & productivity ecosystem featuring:
       }
     })
 
-    // Stream as plain text so the frontend raw reader can consume it directly
-    const textStream = result.textStream;
+    // Stream as plain text using fullStream to capture text from ALL steps (including after tool calls)
+    const fullStream = result.fullStream;
     const readable = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
         let hasContent = false;
         try {
-          for await (const chunk of textStream) {
-            hasContent = true;
-            controller.enqueue(encoder.encode(chunk));
+          for await (const part of fullStream) {
+            if (part.type === 'text-delta') {
+              hasContent = true;
+              controller.enqueue(encoder.encode(part.textDelta));
+            }
           }
           if (!hasContent) {
             controller.enqueue(encoder.encode("⚠️ AI returned an empty response. Please check your OPENAI_API_KEY and OPENAI_MODEL in Vercel Environment Variables."));
