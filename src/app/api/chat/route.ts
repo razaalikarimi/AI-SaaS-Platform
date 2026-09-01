@@ -1,6 +1,6 @@
 /* eslint-disable */
 import { openai } from "@ai-sdk/openai"
-import { streamText, generateId, generateText, tool } from "ai"
+import { streamText, generateId, generateText, tool, stepCountIs } from "ai"
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { auth, currentUser } from "@clerk/nextjs/server"
@@ -233,8 +233,7 @@ DevKit is an all-in-one AI SaaS developer & productivity ecosystem featuring:
           })
         })
       },
-      // @ts-ignore
-      maxSteps: 5,
+      stopWhen: stepCountIs(5),
       onFinish: async ({ text }) => {
         if (chatId) {
           try {
