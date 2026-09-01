@@ -1,17 +1,13 @@
 /* eslint-disable */
 "use client"
 
-import { useChat } from "@ai-sdk/react"
 import { useState, useEffect, useRef } from "react"
 import ReactMarkdown from "react-markdown"
-import { Send, User, Bot, StopCircle, MessageSquare, MoreHorizontal } from "lucide-react"
+import { Send, User, Bot, StopCircle, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { useParams } from "next/navigation"
 import { toast } from "sonner"
-import { DefaultChatTransport } from "ai"
-
-import { UIMessage } from "ai"
 import { useUsage } from "@/context/UsageContext"
 import { getPrompts } from "@/actions/prompts"
 import { 
@@ -22,68 +18,163 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Wand2 } from "lucide-react"
 
-export const ChatWindow = ({ initialMessages = [] }: { initialMessages?: UIMessage[] }) => {
+interface Message {
+  id: string
+  role: "user" | "assistant"
+  content: string
+}
+
+export const ChatWindow = ({ initialMessages = [] }: { initialMessages?: any[] }) => {
   const { incrementChat } = useUsage()
   const params = useParams()
   const chatId = params.chatId as string
   const [isMounted, setIsMounted] = useState(false)
   const [prompts, setPrompts] = useState<any[]>([])
+  
+  const [messages, setMessages] = useState<Message[]>(() => {
+    return initialMessages.map((m) => ({
+      id: m.id || String(Date.now() + Math.random()),
+      role: m.role,
+      content: m.content || (m.parts ? m.parts.map((p: any) => p.text || "").join("") : "")
+    }))
+  })
+
+  const [input, setInput] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setIsMounted(true)
     const loadPrompts = async () => {
-      const data = await getPrompts()
-      setPrompts(data)
+      try {
+        const data = await getPrompts()
+        setPrompts(data)
+      } catch (err) {
+        console.error("Failed to load prompts", err)
+      }
     }
     loadPrompts()
   }, [])
-
-  const {
-    messages,
-    sendMessage,
-    status,
-    stop,
-    regenerate,
-  } = useChat({
-    id: chatId,
-    messages: initialMessages,
-    transport: new DefaultChatTransport({
-      api: "/api/chat",
-      body: {
-        chatId,
-        personality: "Professional",
-        model: "gpt-4o-mini"
-      }
-    }),
-    onError: () => {
-      toast.error("Failed to connect to AI. Please try again.")
-    },
-  })
-
-  const [input, setInput] = useState("")
-  const isLoading = status === "streaming" || status === "submitted"
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() || isLoading) return
-    
-    // Check usage limit before sending
-    const allowed = await incrementChat()
-    if (!allowed) {
-      return
-    }
-
-    sendMessage({ text: input })
-    setInput("")
-  }
 
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight
     }
   }, [messages, isLoading])
+
+  const stop = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+      setIsLoading(false)
+    }
+  }
+
+  const handleSendMessage = async (textToSend: string) => {
+    const trimmed = textToSend.trim()
+    if (!trimmed || isLoading) return
+
+    const allowed = await incrementChat()
+    if (!allowed) return
+
+    const userMessage: Message = {
+      id: "user-" + Date.now(),
+      role: "user",
+      content: trimmed
+    }
+
+    const assistantId = "assistant-" + Date.now()
+    const assistantMessage: Message = {
+      id: assistantId,
+      role: "assistant",
+      content: ""
+    }
+
+    const nextMessages = [...messages, userMessage]
+    setMessages([...nextMessages, assistantMessage])
+    setInput("")
+    setIsLoading(true)
+
+    const controller = new AbortController()
+    abortControllerRef.current = controller
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          chatId,
+          messages: nextMessages.map(m => ({ role: m.role, content: m.content })),
+          personality: "Professional",
+          model: "gpt-4o-mini"
+        }),
+        signal: controller.signal
+      })
+
+      if (!res.ok) {
+        throw new Error("Server responded with status " + res.status)
+      }
+
+      if (!res.body) {
+        throw new Error("No response body received")
+      }
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let streamedContent = ""
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const chunk = decoder.decode(value, { stream: true })
+        streamedContent += chunk
+
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantId ? { ...msg, content: streamedContent } : msg
+          )
+        )
+      }
+    } catch (err: any) {
+      if (err.name !== "AbortError") {
+        console.error("Chat Error:", err)
+        toast.error("Failed to connect to AI. Please try again.")
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === assistantId && !msg.content
+              ? { ...msg, content: "⚠️ An error occurred while generating the response. Please try again." }
+              : msg
+          )
+        )
+      }
+    } finally {
+      setIsLoading(false)
+      abortControllerRef.current = null
+    }
+  }
+
+  const regenerate = () => {
+    if (isLoading || messages.length === 0) return
+    // Find last user message
+    const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")
+    if (lastUserMsg) {
+      // Remove last assistant message if exists
+      const cleanMessages = messages[messages.length - 1]?.role === "assistant" 
+        ? messages.slice(0, -1)
+        : messages
+      setMessages(cleanMessages)
+      handleSendMessage(lastUserMsg.content)
+    }
+  }
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    handleSendMessage(input)
+  }
 
   if (!isMounted) return null
 
@@ -120,24 +211,64 @@ export const ChatWindow = ({ initialMessages = [] }: { initialMessages?: UIMessa
 
           {/* Empty state */}
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-              <div className="w-11 h-11 bg-slate-100 rounded-xl flex items-center justify-center text-slate-400">
-                <MessageSquare size={20} />
+            <div className="flex flex-col items-center justify-center py-12 text-center space-y-6">
+              <div className="w-14 h-14 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm">
+                <Bot size={28} />
               </div>
-              <div className="space-y-1.5">
-                <h3 className="text-sm font-semibold text-slate-700">New Conversation</h3>
-                <p className="text-sm text-slate-400 max-w-xs leading-relaxed">
-                  Type a message below to start chatting with DevKit AI.
+              <div className="space-y-1.5 max-w-md">
+                <h3 className="text-base font-bold text-slate-800">Welcome to DevKit AI</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Your intelligent assistant for software architecture, code generation, real-time queries, and repository intelligence.
                 </p>
+              </div>
+
+              {/* Starter Quick Actions */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full max-w-xl text-left">
+                {[
+                  {
+                    title: "🚀 All DevKit Features A to Z",
+                    desc: "Explore RepoMind, AI Tools, RAG & security audits",
+                    prompt: "Tell me all the DevKit features and tools from A to Z in detail."
+                  },
+                  {
+                    title: "🌦️ Real-Time Weather Check",
+                    desc: "Check live temperature & conditions in any city",
+                    prompt: "What is the current weather, temperature, and forecast in Delhi?"
+                  },
+                  {
+                    title: "🔍 RepoMind GitHub Intelligence",
+                    desc: "How architecture & security audits work",
+                    prompt: "How does RepoMind analyze GitHub repositories, generate architecture diagrams, and find security bugs?"
+                  },
+                  {
+                    title: "💻 Production Code Generation",
+                    desc: "Generate clean, typed code & API endpoints",
+                    prompt: "Generate a production-ready Next.js App Router API route for handling user payments with Stripe or Razorpay."
+                  }
+                ].map((item, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      handleSendMessage(item.prompt);
+                    }}
+                    className="p-3 bg-white border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/40 rounded-xl transition-all group flex flex-col justify-between text-left shadow-xs cursor-pointer"
+                  >
+                    <span className="text-xs font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                      {item.title}
+                    </span>
+                    <span className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
+                      {item.desc}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
           )}
 
-          {messages.map((m: any) => {
-            const content = m.content || (m.parts
-              ? m.parts.filter((p: any) => p.type === "text").map((p: any) => p.text).join("")
-              : "")
-            if (!content.trim()) return null
+          {messages.map((m: Message) => {
+            if (!m.content && m.role === "assistant" && isLoading) return null
+            if (!m.content.trim()) return null
 
             const isUser = m.role === "user"
 
@@ -159,19 +290,19 @@ export const ChatWindow = ({ initialMessages = [] }: { initialMessages?: UIMessa
                       ? "bg-indigo-600 text-white rounded-tr-sm [&_strong]:text-white [&_h1]:text-white [&_h2]:text-white [&_h3]:text-white [&_h4]:text-white [&_li]:text-white [&_p]:text-white [&_a]:text-white"
                       : "bg-white text-slate-800 border border-slate-200 rounded-tl-sm shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
                   }`}>
-                    <ReactMarkdown>{content}</ReactMarkdown>
+                    <ReactMarkdown>{m.content}</ReactMarkdown>
                   </div>
                   {!isUser && (
                     <div className="flex items-center gap-3 px-1">
                       <button
-                        onClick={() => copyToClipboard(content)}
-                        className="text-[10px] text-slate-400 hover:text-slate-600 transition-colors font-medium"
+                        onClick={() => copyToClipboard(m.content)}
+                        className="text-[10px] text-slate-400 hover:text-slate-600 transition-colors font-medium cursor-pointer"
                       >
                         Copy
                       </button>
                       <button
                         onClick={() => regenerate()}
-                        className="text-[10px] text-slate-400 hover:text-slate-600 transition-colors font-medium"
+                        className="text-[10px] text-slate-400 hover:text-slate-600 transition-colors font-medium cursor-pointer"
                       >
                         Regenerate
                       </button>
@@ -209,7 +340,6 @@ export const ChatWindow = ({ initialMessages = [] }: { initialMessages?: UIMessa
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault()
-                // @ts-ignore
                 onSubmit(e)
               }
             }}
@@ -243,10 +373,11 @@ export const ChatWindow = ({ initialMessages = [] }: { initialMessages?: UIMessa
           <div className="absolute right-3 bottom-3">
             {isLoading ? (
               <Button
+                type="button"
                 onClick={() => stop()}
                 size="sm"
                 variant="ghost"
-                className="h-8 px-3 text-red-500 hover:bg-red-50 hover:text-red-600 text-xs font-semibold rounded-md"
+                className="h-8 px-3 text-red-500 hover:bg-red-50 hover:text-red-600 text-xs font-semibold rounded-md cursor-pointer"
               >
                 <StopCircle size={13} className="mr-1.5" />
                 Stop
@@ -256,7 +387,7 @@ export const ChatWindow = ({ initialMessages = [] }: { initialMessages?: UIMessa
                 type="submit"
                 size="sm"
                 disabled={!input.trim()}
-                className="h-8 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-md transition-colors disabled:opacity-40"
+                className="h-8 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-md transition-colors disabled:opacity-40 cursor-pointer"
               >
                 <Send size={12} className="mr-1.5" />
                 Send
