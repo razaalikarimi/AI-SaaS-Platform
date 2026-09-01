@@ -260,12 +260,19 @@ DevKit is an all-in-one AI SaaS developer & productivity ecosystem featuring:
     const readable = new ReadableStream({
       async start(controller) {
         const encoder = new TextEncoder();
+        let hasContent = false;
         try {
           for await (const chunk of textStream) {
+            hasContent = true;
             controller.enqueue(encoder.encode(chunk));
           }
-        } catch (e) {
+          if (!hasContent) {
+            controller.enqueue(encoder.encode("⚠️ AI returned an empty response. Please check your OPENAI_API_KEY and OPENAI_MODEL in Vercel Environment Variables."));
+          }
+        } catch (e: any) {
           console.error("Stream error:", e);
+          const errorMsg = `⚠️ AI Stream Error: ${e?.message || "Unknown error"}. Please verify your OPENAI_API_KEY is valid and has credits.`;
+          controller.enqueue(encoder.encode(hasContent ? `\n\n${errorMsg}` : errorMsg));
         } finally {
           controller.close();
         }
