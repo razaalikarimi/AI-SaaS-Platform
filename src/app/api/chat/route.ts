@@ -194,16 +194,35 @@ Your absolute mission is to provide 100% accurate, complete, well-structured, an
               99: "Thunderstorm with heavy hail"
             };
 
+            // Intelligent region alias mapping for states/valleys
+            const regionAliases: Record<string, string> = {
+              "kashmir": "Srinagar, Jammu and Kashmir, India",
+              "jammu and kashmir": "Srinagar, Jammu and Kashmir, India",
+              "j&k": "Srinagar, Jammu and Kashmir, India",
+              "sikkim": "Gangtok, Sikkim, India",
+              "goa": "Panaji, Goa, India",
+              "ladakh": "Leh, Ladakh, India",
+              "kerala": "Kochi, Kerala, India",
+              "uttarakhand": "Dehradun, Uttarakhand, India",
+              "himachal": "Shimla, Himachal Pradesh, India",
+              "himachal pradesh": "Shimla, Himachal Pradesh, India"
+            };
+
+            const searchLoc = regionAliases[location.trim().toLowerCase()] || location.trim();
+
             try {
-              // 1. Geocode location for exact lat/lon precision
+              // 1. Geocode location with top 5 results and pick highest population match
               const geoRes = await fetch(
-                `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1&language=en&format=json`,
+                `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(searchLoc)}&count=5&language=en&format=json`,
                 { signal: AbortSignal.timeout(5000) }
               );
               const geoData = await geoRes.json();
               
               if (geoData?.results && geoData.results.length > 0) {
-                const place = geoData.results[0];
+                // Sort by population descending so major cities are always picked over small villages
+                const sortedResults = [...geoData.results].sort((a, b) => (b.population || 0) - (a.population || 0));
+                const place = sortedResults[0];
+                
                 const weatherRes = await fetch(
                   `https://api.open-meteo.com/v1/forecast?latitude=${place.latitude}&longitude=${place.longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min&timezone=auto`,
                   { signal: AbortSignal.timeout(5000) }
