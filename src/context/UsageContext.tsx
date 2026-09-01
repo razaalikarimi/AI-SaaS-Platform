@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Zap, Check } from "lucide-react"
+import { useUser } from "@clerk/nextjs"
+import { GuestAuthModal } from "@/components/auth/GuestAuthModal"
 
 import { 
   getUserUsage, 
@@ -11,31 +13,61 @@ import {
   upgradeUserToProAction 
 } from "@/actions/usage"
 
+const GUEST_CHAT_LIMIT = 3
+const GUEST_TOOL_LIMIT = 2
+const FREE_CHAT_LIMIT = 10
+const FREE_TOOL_LIMIT = 5
+
 type UsageContextType = {
   chatCount: number
   toolCount: number
   isProUser: boolean
+  isGuestUser: boolean
+  remainingGuestChats: number
+  guestChatLimit: number
   isPaywallOpen: boolean
+  isAuthModalOpen: boolean
   incrementChat: () => Promise<boolean>
   incrementTool: () => Promise<boolean>
   openPaywall: () => void
   closePaywall: () => void
+  openAuthModal: () => void
+  closeAuthModal: () => void
   upgradeToPro: () => Promise<void>
 }
 
 const UsageContext = createContext<UsageContextType | undefined>(undefined)
 
 export const UsageProvider = ({ children }: { children: React.ReactNode }) => {
+  const { isSignedIn, isLoaded: isAuthLoaded } = useUser()
+  
   const [chatCount, setChatCount] = useState(0)
   const [toolCount, setToolCount] = useState(0)
+  const [guestChatCount, setGuestChatCount] = useState(0)
+  const [guestToolCount, setGuestToolCount] = useState(0)
   const [isProUser, setIsProUser] = useState(false)
   const [isPaywallOpen, setIsPaywallOpen] = useState(false)
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  // Load from Database on mount
+  // Load guest counts from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const storedGuestChats = parseInt(localStorage.getItem("devkit_guest_chats") || "0", 10)
+      const storedGuestTools = parseInt(localStorage.getItem("devkit_guest_tools") || "0", 10)
+      setGuestChatCount(isNaN(storedGuestChats) ? 0 : storedGuestChats)
+      setGuestToolCount(isNaN(storedGuestTools) ? 0 : storedGuestTools)
+    }
+  }, [])
+
+  // Load authenticated user usage from Database on mount
   useEffect(() => {
     const fetchUsage = async () => {
+      if (!isSignedIn) {
+        setIsInitialized(true)
+        return
+      }
       try {
         const usage = await getUserUsage()
         if (usage) {
@@ -50,14 +82,20 @@ export const UsageProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }
     
-    fetchUsage()
-  }, [])
+    if (isAuthLoaded) {
+      fetchUsage()
+    }
+  }, [isSignedIn, isAuthLoaded])
 
-  const CHAT_LIMIT = 5
-  const TOOL_LIMIT = 2
+  const isGuestUser = !isSignedIn
+  const remainingGuestChats = Math.max(0, GUEST_CHAT_LIMIT - guestChatCount)
+  const remainingGuestTools = Math.max(0, GUEST_TOOL_LIMIT - guestToolCount)
 
   const openPaywall = () => setIsPaywallOpen(true)
   const closePaywall = () => setIsPaywallOpen(false)
+  const openAuthModal = () => setIsAuthModalOpen(true)
+  const closeAuthModal = () => setIsAuthModalOpen(false)
+
   const upgradeToPro = async () => {
     const success = await upgradeUserToProAction()
     if (success) {
@@ -71,7 +109,22 @@ export const UsageProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  const incrementChat = async () => {
+  const incrementChat = async (): Promise<boolean> => {
+    // 1. Guest Trial Flow
+    if (!isSignedIn) {
+      if (guestChatCount >= GUEST_CHAT_LIMIT) {
+        openAuthModal()
+        return false
+      }
+      const nextCount = guestChatCount + 1
+      setGuestChatCount(nextCount)
+      if (typeof window !== "undefined") {
+        localStorage.setItem("devkit_guest_chats", String(nextCount))
+      }
+      return true
+    }
+
+    // 2. Authenticated User Flow
     if (isProUser) return true
     
     const success = await incrementChatAction()
@@ -84,7 +137,22 @@ export const UsageProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  const incrementTool = async () => {
+  const incrementTool = async (): Promise<boolean> => {
+    // 1. Guest Trial Flow
+    if (!isSignedIn) {
+      if (guestToolCount >= GUEST_TOOL_LIMIT) {
+        openAuthModal()
+        return false
+      }
+      const nextCount = guestToolCount + 1
+      setGuestToolCount(nextCount)
+      if (typeof window !== "undefined") {
+        localStorage.setItem("devkit_guest_tools", String(nextCount))
+      }
+      return true
+    }
+
+    // 2. Authenticated User Flow
     if (isProUser) return true
     
     const success = await incrementToolAction()
@@ -183,14 +251,23 @@ export const UsageProvider = ({ children }: { children: React.ReactNode }) => {
       chatCount,
       toolCount,
       isProUser,
+      isGuestUser,
+      remainingGuestChats,
+      guestChatLimit: GUEST_CHAT_LIMIT,
       isPaywallOpen,
+      isAuthModalOpen,
       incrementChat,
       incrementTool,
       openPaywall,
       closePaywall,
+      openAuthModal,
+      closeAuthModal,
       upgradeToPro
     }}>
       {children}
+
+      {/* Guest Trial Auth Modal */}
+      <GuestAuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
 
       {/* Global Paywall Modal */}
       {isPaywallOpen && !isProUser && (

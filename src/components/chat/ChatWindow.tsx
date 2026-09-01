@@ -26,7 +26,7 @@ interface Message {
 }
 
 export const ChatWindow = ({ initialMessages = [] }: { initialMessages?: any[] }) => {
-  const { incrementChat } = useUsage()
+  const { incrementChat, isGuestUser, remainingGuestChats, guestChatLimit, openAuthModal } = useUsage()
   const params = useParams()
   const [chatId, setChatId] = useState<string>(() => (params?.chatId as string) || crypto.randomUUID())
   const [isMounted, setIsMounted] = useState(false)
@@ -216,6 +216,24 @@ export const ChatWindow = ({ initialMessages = [] }: { initialMessages?: any[] }
           </div>
         </div>
       </header>
+
+      {/* Guest Trial Info Bar */}
+      {isGuestUser && (
+        <div className="bg-indigo-50/80 border-b border-indigo-100/90 px-5 py-2 flex items-center justify-between text-xs shrink-0">
+          <div className="flex items-center gap-2 text-slate-700 font-medium">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+            <span>
+              Guest Trial: <strong className="text-indigo-700 font-semibold">{remainingGuestChats} of {guestChatLimit} free prompts</strong> remaining
+            </span>
+          </div>
+          <button
+            onClick={openAuthModal}
+            className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 cursor-pointer"
+          >
+            Sign in free to save history →
+          </button>
+        </div>
+      )}
 
       {/* Messages */}
       <div ref={containerRef} className="flex-1 min-h-0 overflow-y-auto">

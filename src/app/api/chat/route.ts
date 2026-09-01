@@ -10,21 +10,21 @@ export const maxDuration = 30
 async function getDbUserId(): Promise<string> {
   try {
     const { userId: clerkId } = await auth();
-    if (!clerkId) return "demo-user-id";
-    let user = await db.user.findUnique({ where: { clerkId } });
+    if (!clerkId) return "guest-user-id";
+    let user = await db.user.findUnique({ where: { clerkId }, select: { id: true } });
     if (!user) {
-      const clerkUser = await currentUser();
       user = await db.user.create({
         data: {
           clerkId,
-          email: clerkUser?.emailAddresses[0]?.emailAddress || `${clerkId}@example.com`,
-          name: clerkUser?.fullName || 'New User',
-        }
+          email: `${clerkId}@devkit.ai`,
+          name: 'User',
+        },
+        select: { id: true }
       });
     }
     return user.id;
   } catch {
-    return "demo-user-id";
+    return "guest-user-id";
   }
 }
 

@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   Plus,
   MessageSquare,
@@ -15,16 +15,14 @@ import {
   Settings,
   Zap,
   GitBranch,
+  LogIn,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { ChatList } from "./ChatList"
-import { createConversation } from "@/actions/chat"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
 import { Logo } from "@/components/Logo"
 import { useUsage } from "@/context/UsageContext"
+import { useUser, UserButton } from "@clerk/nextjs"
 
 const routes = [
   { label: "Overview",       icon: LayoutDashboard, href: "/dashboard", badge: null  },
@@ -41,7 +39,8 @@ export const Sidebar = () => {
   const pathname = usePathname()
   const router = useRouter()
   const [isMounted, setIsMounted] = useState(false)
-  const { isProUser } = useUsage()
+  const { isProUser, remainingGuestChats, guestChatLimit } = useUsage()
+  const { user, isSignedIn } = useUser()
 
   useEffect(() => { setIsMounted(true) }, [])
 
@@ -54,25 +53,25 @@ export const Sidebar = () => {
   return (
     <div className="flex w-[260px] h-full flex-col flex-shrink-0 bg-white border-r border-slate-200">
 
-      {/* Brand — simple wordmark, no badge */}
+      {/* Brand */}
       <Link href="/">
         <div className="h-16 px-5 flex items-center gap-3 border-b border-slate-100 hover:bg-slate-50 transition-colors cursor-pointer">
           <Logo />
         </div>
       </Link>
 
-      {/* New Conversation — flat solid button */}
+      {/* New Conversation Button */}
       <div className="px-4 py-3 border-b border-slate-100">
         <button
           onClick={handleNewChat}
-          className="w-full h-9 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center gap-2 text-sm font-semibold transition-colors"
+          className="w-full h-9 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center gap-2 text-sm font-semibold transition-colors shadow-xs cursor-pointer"
         >
           <Plus size={14} />
           New Conversation
         </button>
       </div>
 
-      {/* Nav */}
+      {/* Navigation Routes */}
       <ScrollArea className="flex-1 px-3 py-3">
         <div className="space-y-0.5">
           {routes.map((route, i) => {
@@ -91,9 +90,9 @@ export const Sidebar = () => {
                     size={16}
                     className={isActive ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-500"}
                   />
-                  <span className="flex-1">{route.label}</span>
+                  <span className="flex-1 truncate">{route.label}</span>
                   {route.badge && (
-                    <span className="text-[10px] font-semibold bg-slate-100 text-slate-500 border border-slate-200 rounded px-1.5 py-0.5">
+                    <span className="text-[10px] bg-indigo-50 text-indigo-600 font-bold px-1.5 py-0.5 rounded">
                       {route.badge}
                     </span>
                   )}
@@ -103,7 +102,7 @@ export const Sidebar = () => {
           })}
         </div>
 
-        {/* History section */}
+        {/* Chat History */}
         <div className="mt-5">
           <div className="px-3 mb-2 flex items-center gap-2">
             <div className="h-px flex-1 bg-slate-100" />
@@ -114,32 +113,53 @@ export const Sidebar = () => {
         </div>
       </ScrollArea>
 
-      {/* User footer — clean bg, no gradient */}
-      <div className="p-4 border-t border-slate-100">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="relative">
-              <Avatar className="h-8 w-8 border border-slate-200">
-                <AvatarImage src="https://github.com/shadcn.png" />
-                <AvatarFallback className="bg-slate-100 text-slate-600 text-xs font-bold">AD</AvatarFallback>
-              </Avatar>
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+      {/* User Footer */}
+      {isSignedIn ? (
+        <div className="p-3.5 border-t border-slate-100 bg-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <UserButton />
+              <div className="min-w-0">
+                <div className="text-xs font-semibold text-slate-800 truncate">
+                  {user?.fullName || user?.firstName || "Member"}
+                </div>
+                <div className="text-[10px] text-slate-400 font-medium">
+                  {isProUser ? "⭐ Pro Plan" : "Free Plan"}
+                </div>
+              </div>
             </div>
-            <div>
-              <div className="text-xs font-semibold text-slate-800">User</div>
-              <div className="text-[10px] text-slate-400">{isProUser ? "Pro Plan" : "Free Plan"}</div>
-            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md shrink-0"
+              onClick={() => router.push("/billing")}
+            >
+              <Settings size={14} />
+            </Button>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md"
-            onClick={() => router.push("/billing")}
-          >
-            <Settings size={14} />
-          </Button>
         </div>
-      </div>
+      ) : (
+        <div className="p-3.5 border-t border-slate-100 bg-slate-50/70">
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-semibold text-slate-700">Guest Trial</span>
+              </div>
+              <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-full">
+                {remainingGuestChats}/{guestChatLimit} Left
+              </span>
+            </div>
+
+            <Link href="/sign-in" className="w-full">
+              <button className="w-full h-8 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center gap-1.5 text-xs font-semibold shadow-xs transition-colors cursor-pointer">
+                <LogIn size={13} />
+                Sign In / Register
+              </button>
+            </Link>
+          </div>
+        </div>
+      )}
 
     </div>
   )
