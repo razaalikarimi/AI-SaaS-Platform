@@ -152,7 +152,8 @@ DevKit is an all-in-one AI SaaS developer & productivity ecosystem featuring:
           const encoder = new TextEncoder();
           const words = mockText.split(" ");
           for (let i = 0; i < words.length; i++) {
-            controller.enqueue(encoder.encode(words[i] + " "));
+            const chunk = JSON.stringify(words[i] + " ");
+            controller.enqueue(encoder.encode(`0:${chunk}\n`));
             await new Promise(r => setTimeout(r, 40));
           }
           controller.close();
@@ -266,7 +267,8 @@ DevKit is an all-in-one AI SaaS developer & productivity ecosystem featuring:
         const encoder = new TextEncoder();
         const words = mockText.split(" ");
         for (let i = 0; i < words.length; i++) {
-          controller.enqueue(encoder.encode(words[i] + " "));
+          const chunk = JSON.stringify(words[i] + " ");
+          controller.enqueue(encoder.encode(`0:${chunk}\n`));
           await new Promise(r => setTimeout(r, 40));
         }
         controller.close();

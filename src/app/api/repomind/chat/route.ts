@@ -41,17 +41,13 @@ export async function POST(req: Request) {
       const stream = new ReadableStream({
         async start(controller) {
           const encoder = new TextEncoder();
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "text-start", id: messageId })}\n\n`));
           
           const words = mockText.split(" ");
           for (let i = 0; i < words.length; i++) {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({ type: "text-delta", id: messageId, delta: words[i] + " " })}\n\n`)
-            );
-            await new Promise(r => setTimeout(r, 50));
+            const chunk = JSON.stringify(words[i] + " ");
+            controller.enqueue(encoder.encode(`0:${chunk}\n`));
+            await new Promise(r => setTimeout(r, 40));
           }
-          
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "text-end", id: messageId })}\n\n`));
           controller.close();
         }
       });
