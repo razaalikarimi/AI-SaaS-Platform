@@ -27,10 +27,17 @@ const getDbUserId = async () => {
 }
 
 export const getPrompts = async () => {
-  const userId = await getDbUserId();
-  if (!userId) return [];
-
   try {
+    const userId = await getDbUserId();
+    
+    if (!userId) {
+      // For guest visitors, return public/starter prompts
+      return await db.promptTemplate.findMany({
+        where: { isPublic: true },
+        orderBy: { createdAt: "desc" }
+      });
+    }
+
     return await db.promptTemplate.findMany({
       where: {
         OR: [
@@ -50,7 +57,9 @@ export const getPrompts = async () => {
 
 export const createPrompt = async (data: { name: string, description: string, prompt: string, isPublic: boolean }) => {
   const userId = await getDbUserId();
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) {
+    throw new Error("Please sign in to save custom prompts.");
+  }
 
   const prompt = await db.promptTemplate.create({
     data: {

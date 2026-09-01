@@ -28,7 +28,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 
+import { useUsage } from "@/context/UsageContext"
+
 export default function PromptsPage() {
+  const { isGuestUser, openAuthModal } = useUsage()
   const [prompts, setPrompts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -52,6 +55,12 @@ export default function PromptsPage() {
 
   const handleCreate = async () => {
     if (!name || !content) return
+    if (isGuestUser) {
+      setOpen(false)
+      openAuthModal()
+      toast.info("Sign in for free to save custom prompts.")
+      return
+    }
     try {
       await createPrompt({ name, description, prompt: content, isPublic })
       toast.success("Prompt created successfully")
@@ -61,8 +70,8 @@ export default function PromptsPage() {
       setDescription("")
       setContent("")
       setIsPublic(false)
-    } catch (error) {
-      toast.error("Failed to create prompt")
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to create prompt")
     }
   }
 
@@ -91,8 +100,14 @@ export default function PromptsPage() {
             <p className="text-slate-500 text-sm mt-1">Manage and reuse your custom prompts.</p>
           </div>
           
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger className="h-10 px-5 rounded-lg text-sm font-medium flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm">
+          <Dialog open={open} onOpenChange={(nextOpen) => {
+            if (nextOpen && isGuestUser) {
+              openAuthModal()
+              return
+            }
+            setOpen(nextOpen)
+          }}>
+            <DialogTrigger className="h-10 px-5 rounded-lg text-sm font-medium flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm cursor-pointer">
               <Plus size={16} />
               New Prompt
             </DialogTrigger>
