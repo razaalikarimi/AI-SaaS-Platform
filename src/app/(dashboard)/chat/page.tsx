@@ -9,18 +9,41 @@ export default function ChatPage() {
   const router = useRouter()
 
   useEffect(() => {
+    let isNavigating = false;
     const initChat = async () => {
       try {
-        const chat = await createConversation()
-        if (chat && chat.id) {
-          router.replace(`/chat/${chat.id}`)
+        console.log("[ChatPage] Calling createConversation...");
+        
+        // Add a 8 second timeout to the server action
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Server action timed out")), 8000)
+        );
+        
+        const chat = await Promise.race([
+          createConversation(),
+          timeoutPromise
+        ]) as any;
+        
+        console.log("[ChatPage] createConversation returned:", chat);
+        
+        if (chat && chat.id && !isNavigating) {
+          isNavigating = true;
+          console.log("[ChatPage] Navigating to /chat/" + chat.id);
+          window.location.href = `/chat/${chat.id}`; // Force hard navigation to bypass router hangs
         }
       } catch (err) {
-        console.error("Failed to initialize chat session:", err)
+        console.error("Failed to initialize chat session:", err);
+        // Fallback to local chat on failure
+        if (!isNavigating) {
+          isNavigating = true;
+          const fallbackId = crypto.randomUUID();
+          console.log("[ChatPage] Fallback navigation to /chat/" + fallbackId);
+          window.location.href = `/chat/${fallbackId}`;
+        }
       }
     }
     initChat()
-  }, [router])
+  }, [])
 
   return (
     <div className="flex items-center justify-center h-full w-full bg-[#F8FAFC]">
