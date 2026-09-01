@@ -19,8 +19,8 @@ export default function BillingPage() {
       setCurrentPlan("Pro")
       setInvoices(prev => prev.length === 0 ? [{
         id: `INV-${new Date().getFullYear()}-4309`,
-        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        amount: "$19",
+        date: new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }),
+        amount: "₹499",
         status: "Paid"
       }] : prev)
     }
@@ -29,7 +29,7 @@ export default function BillingPage() {
   const handlePayment = async (planName: string, priceStr: string) => {
     setIsProcessing(true)
     
-    // Convert string price "$19" to number 1900 
+    // Convert string price "₹499" to paise (499 * 100 = 49900)
     const priceNum = parseInt(priceStr.replace(/[^0-9]/g, '')) * 100
 
     try {
@@ -52,7 +52,7 @@ export default function BillingPage() {
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
-        currency: order.currency,
+        currency: order.currency || "INR",
         name: "DevKit AI",
         description: `Upgrade to ${planName}`,
         order_id: order.id,
@@ -61,8 +61,6 @@ export default function BillingPage() {
             description: `Payment ID: ${response.razorpay_payment_id}`
           })
           
-          // --- DEMO UPDATE LOGIC ---
-          // Update the UI state to reflect the successful payment
           const shortPlanName = planName.replace(" Plan", "")
           setCurrentPlan(shortPlanName)
           
@@ -72,19 +70,18 @@ export default function BillingPage() {
 
           const newInvoice = {
             id: `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
-            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            date: new Date().toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' }),
             amount: priceStr,
             status: "Paid"
           }
           setInvoices(prev => [newInvoice, ...prev])
-          // -------------------------
 
           setIsProcessing(false)
         },
         prefill: {
           name: "DevKit User",
-          email: "user@devkit.io",
-          contact: "9999999999"
+          email: "user@devkit.in",
+          contact: "9876543210"
         },
         theme: {
           color: "#0f172a" 
@@ -132,7 +129,7 @@ export default function BillingPage() {
         
         <div className="mb-8">
           <h1 className="text-2xl font-semibold mb-1">Billing & Subscription</h1>
-          <p className="text-slate-500 text-sm">Manage your plan, payment methods, and invoices.</p>
+          <p className="text-slate-500 text-sm">Manage your plan, UPI / Card payment methods, and GST invoices.</p>
         </div>
 
         {/* Current Plan Overview */}
@@ -165,11 +162,11 @@ export default function BillingPage() {
           <div className="flex-shrink-0">
             {currentPlan === "Free" ? (
               <Button 
-                onClick={() => handlePayment("Pro Plan", "$19")}
+                onClick={() => handlePayment("Pro Plan", "₹499")}
                 disabled={isProcessing}
-                className="bg-slate-900 hover:bg-slate-800 text-white shadow-sm"
+                className="bg-slate-900 hover:bg-slate-800 text-white shadow-sm cursor-pointer"
               >
-                {isProcessing ? "Processing..." : "Upgrade to Pro"}
+                {isProcessing ? "Processing..." : "Upgrade to Pro (₹499)"}
               </Button>
             ) : (
               <Button variant="outline" className="shadow-sm">
@@ -188,7 +185,7 @@ export default function BillingPage() {
             <div className={`border ${currentPlan === "Free" ? "border-indigo-600 ring-1 ring-indigo-600" : "border-slate-200"} bg-white rounded-xl p-6 shadow-sm flex flex-col relative transition-all`}>
               <h3 className="font-medium text-slate-900 mb-2">Free</h3>
               <div className="mb-4">
-                <span className="text-3xl font-bold">$0</span>
+                <span className="text-3xl font-bold">₹0</span>
                 <span className="text-slate-500 text-sm"> / month</span>
               </div>
               <ul className="space-y-3 mb-8 flex-1 text-sm text-slate-600">
@@ -205,7 +202,7 @@ export default function BillingPage() {
                   <span>Community support</span>
                 </li>
               </ul>
-              <Button variant={currentPlan === "Free" ? "secondary" : "outline"} className="w-full" disabled={currentPlan === "Free"} onClick={() => handlePayment("Free Plan", "$0")}>
+              <Button variant={currentPlan === "Free" ? "secondary" : "outline"} className="w-full" disabled={currentPlan === "Free"} onClick={() => handlePayment("Free Plan", "₹0")}>
                 {currentPlan === "Free" ? "Current Plan" : "Downgrade"}
               </Button>
             </div>
@@ -224,7 +221,7 @@ export default function BillingPage() {
               )}
               <h3 className="font-medium text-slate-900 mb-2">Pro</h3>
               <div className="mb-4">
-                <span className="text-3xl font-bold">$19</span>
+                <span className="text-3xl font-bold">₹499</span>
                 <span className="text-slate-500 text-sm"> / month</span>
               </div>
               <ul className="space-y-3 mb-8 flex-1 text-sm text-slate-600">
@@ -242,11 +239,11 @@ export default function BillingPage() {
                 </li>
               </ul>
               <Button 
-                onClick={() => handlePayment("Pro Plan", "$19")}
+                onClick={() => handlePayment("Pro Plan", "₹499")}
                 disabled={isProcessing || currentPlan === "Pro"}
-                className={`w-full ${currentPlan === "Pro" ? "bg-slate-100 text-slate-400 hover:bg-slate-100" : "bg-slate-900 hover:bg-slate-800 text-white"}`}
+                className={`w-full ${currentPlan === "Pro" ? "bg-slate-100 text-slate-400 hover:bg-slate-100" : "bg-slate-900 hover:bg-slate-800 text-white cursor-pointer"}`}
               >
-                {currentPlan === "Pro" ? "Current Plan" : (isProcessing ? "Processing..." : "Upgrade")}
+                {currentPlan === "Pro" ? "Current Plan" : (isProcessing ? "Processing..." : "Upgrade to Pro (₹499)")}
               </Button>
             </div>
 
@@ -254,7 +251,7 @@ export default function BillingPage() {
             <div className={`border ${currentPlan === "Team" ? "border-indigo-600 ring-1 ring-indigo-600" : "border-slate-200"} bg-white rounded-xl p-6 shadow-sm flex flex-col transition-all`}>
               <h3 className="font-medium text-slate-900 mb-2">Team</h3>
               <div className="mb-4">
-                <span className="text-3xl font-bold">$49</span>
+                <span className="text-3xl font-bold">₹1,499</span>
                 <span className="text-slate-500 text-sm"> / month</span>
               </div>
               <ul className="space-y-3 mb-8 flex-1 text-sm text-slate-600">
@@ -272,12 +269,12 @@ export default function BillingPage() {
                 </li>
               </ul>
               <Button 
-                onClick={() => handlePayment("Team Plan", "$49")}
+                onClick={() => handlePayment("Team Plan", "₹1,499")}
                 disabled={isProcessing || currentPlan === "Team"}
                 variant={currentPlan === "Team" ? "secondary" : "outline"} 
-                className="w-full"
+                className="w-full cursor-pointer"
               >
-                {currentPlan === "Team" ? "Current Plan" : (isProcessing ? "Processing..." : "Upgrade")}
+                {currentPlan === "Team" ? "Current Plan" : (isProcessing ? "Processing..." : "Upgrade to Team (₹1,499)")}
               </Button>
             </div>
 

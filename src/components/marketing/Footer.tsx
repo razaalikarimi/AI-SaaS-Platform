@@ -42,7 +42,7 @@ export const Footer = () => {
               <span className="text-base font-bold text-slate-900">DevKit</span>
             </Link>
             <p className="text-sm text-slate-500 max-w-xs leading-relaxed mb-6">
-              The next-generation enterprise AI platform. Empowering teams to build, automate, and scale with intelligence.
+              All your AI tools in one simple place. Built for developers, students, and modern teams in India.
             </p>
 
             {/* Social icons */}

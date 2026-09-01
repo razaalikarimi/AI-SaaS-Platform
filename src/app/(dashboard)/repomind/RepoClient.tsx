@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { addRepository } from "@/actions/repositories";
+import { useUsage } from "@/context/UsageContext";
 
 function formatTimeAgo(dateString: string | Date) {
   const date = new Date(dateString);
@@ -21,10 +22,11 @@ function formatTimeAgo(dateString: string | Date) {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   if (days < 30) return `${days}d ago`;
-  return date.toLocaleDateString();
+  return date.toLocaleDateString('en-IN');
 }
 
 export function RepoClient({ initialRepos }: { initialRepos: any[] }) {
+  const { isGuestUser, openAuthModal } = useUsage();
   const [repos, setRepos] = useState(initialRepos);
   const [search, setSearch] = useState("");
   const [isConnectOpen, setIsConnectOpen] = useState(false);
@@ -39,6 +41,13 @@ export function RepoClient({ initialRepos }: { initialRepos: any[] }) {
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!repoUrl.trim()) return;
+
+    if (isGuestUser) {
+      setIsConnectOpen(false);
+      openAuthModal();
+      toast.info("Please sign in to connect and audit GitHub repositories.");
+      return;
+    }
 
     try {
       setIsConnecting(true);
@@ -192,7 +201,13 @@ export function RepoClient({ initialRepos }: { initialRepos: any[] }) {
       </div>
 
       {/* Connect Modal */}
-      <Dialog open={isConnectOpen} onOpenChange={setIsConnectOpen}>
+      <Dialog open={isConnectOpen} onOpenChange={(open) => {
+        if (open && isGuestUser) {
+          openAuthModal();
+          return;
+        }
+        setIsConnectOpen(open);
+      }}>
         <DialogContent className="sm:max-w-[425px] bg-white rounded-xl">
           <DialogHeader>
             <DialogTitle>Connect Repository</DialogTitle>

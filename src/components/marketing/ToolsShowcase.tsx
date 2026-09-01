@@ -1,3 +1,4 @@
+/* eslint-disable */
 "use client"
 
 import { FileText, Mail, Briefcase, Code2, Video, Search, PenTool, ImageIcon, ArrowRight } from "lucide-react"
@@ -5,89 +6,108 @@ import Link from "next/link"
 
 const TOOLS = [
   {
-    title: "Blog Writer",
-    description: "Write complete blog posts based on a topic.",
-    icon: FileText,
-  },
-  {
-    title: "Email Generator",
-    description: "Professional emails for sales, support, and marketing.",
-    icon: Mail,
-  },
-  {
-    title: "LinkedIn Post",
-    description: "Create engaging posts for your LinkedIn profile.",
-    icon: Briefcase,
-  },
-  {
     title: "AI Code Generator",
-    description: "Write clean, efficient code in any programming language.",
+    description: "Write clean code, components, and functions in Python, JavaScript, and more.",
+    tag: "Coding",
     icon: Code2,
   },
   {
-    title: "YouTube Script",
-    description: "Engaging video scripts for your YouTube channel.",
+    title: "Blog & Article Writer",
+    description: "Write complete articles and blog posts with clear headings on any topic.",
+    tag: "Writing",
+    icon: FileText,
+  },
+  {
+    title: "Email Writer",
+    description: "Write polite, professional emails for sales, client follow-ups, and jobs.",
+    tag: "Work",
+    icon: Mail,
+  },
+  {
+    title: "LinkedIn Post Writer",
+    description: "Create engaging LinkedIn posts and updates to grow your network.",
+    tag: "Social",
+    icon: Briefcase,
+  },
+  {
+    title: "YouTube Script Writer",
+    description: "Create video scripts with catchy hooks, talking points, and endings.",
+    tag: "Video",
     icon: Video,
   },
   {
-    title: "SEO Optimizer",
-    description: "Analyze and optimize your content for search engines.",
+    title: "SEO Content Optimizer",
+    description: "Improve your articles and websites to rank higher on Google search.",
+    tag: "Google SEO",
     icon: Search,
   },
   {
     title: "Resume Builder",
-    description: "Create professional resumes.",
+    description: "Write impressive work experience bullet points for your tech resume.",
+    tag: "Jobs",
     icon: PenTool,
   },
   {
-    title: "Image Prompt",
-    description: "Create detailed descriptions for AI image tools.",
+    title: "AI Image Prompt Creator",
+    description: "Create descriptive prompts to generate high quality images in Midjourney & DALL-E.",
+    tag: "Images",
     icon: ImageIcon,
   },
 ]
 
 export const ToolsShowcase = () => {
   return (
-    <section className="bg-[#fafafa] py-24 border-t border-slate-100" id="tools">
-      <div className="section-padding max-w-7xl mx-auto px-6">
+    <section className="bg-white py-20 border-b border-slate-200" id="tools">
+      <div className="max-w-5xl mx-auto px-6">
         
-        <div className="mb-16 text-center md:text-left">
-          <span className="text-xs font-semibold text-indigo-600 uppercase tracking-widest">
-            Tools Directory
-          </span>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mt-3 mb-4">
-            Useful tools for your daily tasks.
-          </h2>
-          <p className="text-slate-500 text-[15px] max-w-2xl leading-relaxed">
-            DevKit includes several built-in AI generators to help you write code, emails, blogs, and more.
-          </p>
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-4">
+          <div>
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
+              Tools List
+            </span>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mt-3 mb-1.5">
+              8+ AI tools for everyday tasks.
+            </h2>
+            <p className="text-slate-500 text-sm">
+              Each tool is built to give you fast, high quality results in seconds.
+            </p>
+          </div>
+
+          <Link href="/tools" className="shrink-0">
+            <button className="h-9 px-4 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer">
+              View All Tools <ArrowRight size={12} />
+            </button>
+          </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {TOOLS.map((tool, i) => (
-            <Link key={i} href="/tools" className="block h-full">
-              <div className="border border-slate-200 bg-white p-6 rounded-xl h-full flex flex-col group hover:border-indigo-200 hover:shadow-[0_4px_14px_0_rgba(99,102,241,0.08)] transition-all cursor-pointer">
-                <div className="w-10 h-10 rounded-lg bg-indigo-50/50 text-indigo-600 flex items-center justify-center mb-5 flex-shrink-0 group-hover:bg-indigo-100 transition-colors">
-                  <tool.icon size={18} />
+            <Link key={i} href="/tools" className="block h-full group">
+              <div className="border border-slate-200 bg-white p-5 rounded-xl h-full flex flex-col justify-between hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer">
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-700 flex items-center justify-center group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                      <tool.icon size={16} />
+                    </div>
+                    <span className="text-[10px] font-medium text-slate-400 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded">
+                      {tool.tag}
+                    </span>
+                  </div>
+
+                  <h3 className="text-sm font-bold text-slate-900 mb-1 group-hover:text-indigo-600 transition-colors">
+                    {tool.title}
+                  </h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    {tool.description}
+                  </p>
                 </div>
-                <h3 className="text-[15px] font-semibold text-slate-900 mb-2 group-hover:text-indigo-600 transition-colors">
-                  {tool.title}
-                </h3>
-                <p className="text-sm text-slate-500 leading-relaxed mb-4 flex-grow">
-                  {tool.description}
-                </p>
+
+                <div className="pt-3 mt-3 border-t border-slate-100 flex items-center text-[11px] font-semibold text-slate-400 group-hover:text-indigo-600 transition-colors gap-1">
+                  Open Tool <ArrowRight size={10} />
+                </div>
               </div>
             </Link>
           ))}
-        </div>
-
-        <div className="mt-12 text-center">
-           <Link href="/dashboard">
-             <button className="h-11 px-6 rounded-md bg-white border border-slate-200 hover:bg-slate-50 text-slate-900 text-sm font-semibold transition-colors shadow-sm inline-flex items-center gap-2">
-               Explore all tools
-               <ArrowRight size={14} />
-             </button>
-           </Link>
         </div>
 
       </div>

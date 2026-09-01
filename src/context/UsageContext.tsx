@@ -296,7 +296,7 @@ export const UsageProvider = ({ children }: { children: React.ReactNode }) => {
                     <p className="text-xs text-slate-500 mt-0.5">Billed monthly</p>
                   </div>
                   <div className="text-right">
-                    <span className="text-xl font-bold text-slate-900">$19</span>
+                    <span className="text-xl font-bold text-slate-900">₹499</span>
                     <span className="text-xs text-slate-500 font-medium">/mo</span>
                   </div>
                 </div>

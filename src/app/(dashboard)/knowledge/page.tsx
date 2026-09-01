@@ -14,8 +14,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { getDocuments, deleteDocument } from "@/actions/knowledge"
+import { useUsage } from "@/context/UsageContext"
 
 export default function KnowledgePage() {
+  const { isGuestUser, openAuthModal } = useUsage()
   const [documents, setDocuments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [isUploading, setIsUploading] = useState(false)
@@ -34,6 +36,12 @@ export default function KnowledgePage() {
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    if (isGuestUser) {
+      if (fileInputRef.current) fileInputRef.current.value = ""
+      openAuthModal()
+      toast.info("Please sign in to upload and store custom documents.")
+      return
+    }
     setIsUploading(true)
     const formData = new FormData()
     formData.append("file", file)

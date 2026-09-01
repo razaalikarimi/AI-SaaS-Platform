@@ -1,52 +1,66 @@
+/* eslint-disable */
 "use client"
 
-import { Database, Zap, Rocket } from "lucide-react"
+import { MousePointerClick, Zap, Copy } from "lucide-react"
 
 const STEPS = [
   {
-    icon: Database,
-    title: "1. Add your data",
-    description: "Upload your documents or link your GitHub repository so the AI can understand your work."
+    step: "1",
+    icon: MousePointerClick,
+    title: "Pick what you want to do",
+    description: "Choose to chat with AI, pick a tool like Code Generator or Email Writer, or upload a PDF document."
   },
   {
+    step: "2",
     icon: Zap,
-    title: "2. Choose a tool",
-    description: "Use our chat, pick a specific AI generator, or run a code review on your repository."
+    title: "Let AI generate the answer",
+    description: "Type your topic or question. The AI fetches live information or writes your code in 1-2 seconds."
   },
   {
-    icon: Rocket,
-    title: "3. Get fast results",
-    description: "Let the AI generate content, find bugs, or answer your questions in seconds."
+    step: "3",
+    icon: Copy,
+    title: "Copy and use your result",
+    description: "Copy the code or text with one click, or save your chats so you can resume them anytime."
   }
 ]
 
 export const HowItWorks = () => {
   return (
-    <section className="bg-white py-24 border-b border-slate-100">
-      <div className="max-w-7xl mx-auto px-6">
+    <section className="bg-white py-20 border-b border-slate-200">
+      <div className="max-w-5xl mx-auto px-6">
         
-        <div className="text-center mb-20">
-          <span className="text-xs font-semibold text-indigo-600 uppercase tracking-widest">
+        <div className="text-center max-w-xl mx-auto mb-14">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider bg-slate-100 px-3 py-1 rounded-full border border-slate-200">
             How It Works
           </span>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mt-3">
-            How to use DevKit
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-slate-900 mt-3 mb-2">
+            Easy to use in 3 simple steps.
           </h2>
+          <p className="text-slate-500 text-sm">
+            No complicated setup or long learning curve.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-8 relative">
-          {/* Connecting Line (Desktop only) */}
-          <div className="hidden md:block absolute top-8 left-[16%] right-[16%] h-[2px] bg-slate-100 -z-10" />
-
-          {STEPS.map((step, i) => (
-            <div key={i} className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-2xl bg-white border-2 border-slate-100 shadow-sm flex items-center justify-center text-indigo-600 mb-6">
-                <step.icon size={28} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {STEPS.map((s, i) => (
+            <div 
+              key={i} 
+              className="bg-slate-50/70 border border-slate-200 rounded-xl p-6 flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-5">
+                  <div className="w-9 h-9 rounded-lg bg-slate-900 text-white flex items-center justify-center">
+                    <s.icon size={17} />
+                  </div>
+                  <span className="text-xs font-bold text-slate-400">
+                    Step {s.step}
+                  </span>
+                </div>
+                <h3 className="text-base font-bold text-slate-900 mb-1.5">{s.title}</h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  {s.description}
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-3">{step.title}</h3>
-              <p className="text-slate-500 text-[15px] leading-relaxed max-w-sm">
-                {step.description}
-              </p>
             </div>
           ))}
         </div>
